@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบคำนวณส่วนแบ่งกำไร</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --secondary-color: #FF9800;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #ccc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            
+            /* ป้องกันการลากคลุมข้อความ (Highlight) */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* อนุญาตให้ลากคลุมเฉพาะในช่องกรอกข้อมูล เพื่อให้ใช้งานได้ปกติ */
+        input, select {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+
+        .layout-wrapper {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 1300px;
+            align-items: flex-start;
+        }
+
+        .sidebar {
+            width: 220px;
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 15px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-menu { display: flex; flex-direction: column; gap: 8px; }
+
+        .menu-item {
+            padding: 12px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            color: #555;
+            transition: all 0.2s;
+        }
+
+        .menu-item:hover:not(.active) { background-color: #f0f0f0; }
+        .menu-item.active { background-color: #e3f2fd; border-color: var(--primary-color); color: var(--primary-color); }
+
+        .delete-icon {
+            color: #ff4c4c; font-size: 14px; cursor: pointer; padding: 2px 6px; border-radius: 4px; display: none;
+        }
+        .delete-icon:hover { background-color: #ffe6e6; }
+
+        button.add-item-btn {
+            background-color: var(--primary-color); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: bold; margin-top: 15px;
+        }
+        button.add-item-btn:hover { background-color: #1e88e5; }
+
+        .main-content {
+            flex: 1; background-color: var(--card-bg); padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); min-height: 600px;
+        }
+
+        .view-panel { display: none; animation: fadeIn 0.3s; }
+        .view-panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .inner-layout { display: flex; gap: 15px; margin-top: 15px; align-items: flex-start;}
+        .inner-main { flex: 6; }
+        .inner-side { flex: 4; }
+
+        h2, h3 { margin: 0 0 15px 0; text-align: center; }
+        h2 { color: var(--primary-color); font-size: 22px;}
+        h3 { color: var(--secondary-color); border-bottom: 2px solid #fff3e0; padding-bottom: 8px; font-size: 18px;}
+
+        .main-config { background-color: #e3f2fd; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid var(--primary-color); }
+        .percent-tracker-box { background-color: #fff3e0; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid var(--secondary-color); }
+
+        .input-group { margin-bottom: 10px; }
+        .input-group label { font-weight: bold; display: block; margin-bottom: 4px; font-size: 13px; color: #444; }
+
+        input[type="text"], select { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        input::placeholder { color: #999; }
+        input:focus, select:focus { outline: none; border-color: var(--primary-color); }
+
+        .summary-box { background-color: #fff; padding: 10px; border-radius: 6px; margin-top: 10px; border: 1px dashed #2196F3; }
+        .inner-side .summary-box { border-color: var(--secondary-color); background-color: #fff8e1; }
+        .summary-box div { margin-bottom: 5px; font-size: 13px; }
+        .highlight-text { font-weight: bold; color: #d32f2f; font-size: 15px; }
+
+        .group-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .group-box { border: 1px solid var(--border-color); padding: 12px; border-radius: 6px; background-color: #fafafa; }
+        .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .group-header input { width: 80%; font-weight: bold; }
+        .result-box { margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; text-align: right; font-size: 13px; }
+
+        button.add-btn { background-color: var(--primary-color); color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
+        button.add-sub-btn { background-color: var(--secondary-color); color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; margin-bottom: 10px;}
+        .remove-btn { background-color: #ff4c4c; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
+
+        .sub-item-box { background-color: #fff; border: 1px solid #e0e0e0; padding: 8px; border-radius: 6px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
+        .sub-item-header { display: flex; justify-content: space-between; }
+        .sub-item-header input { width: 80%; }
+        .sub-item-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .sub-item-row input { width: 45%; }
+        .sub-amount-display { font-weight: bold; color: #1976D2; font-size: 13px;}
+
+        .summary-item-wrapper {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            background-color: #f8f9fa;
+        }
+        .summary-item-wrapper h2.view-title {
+            color: #555 !important;
+            margin-top: 0;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+
+        .action-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 15px; }
+        .action-btns button { padding: 8px 0; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center;}
+        .btn-save { background-color: #4CAF50; }
+        .btn-save:hover { background-color: #45a049; }
+        .btn-undo { background-color: #607D8B; }
+        .btn-undo:hover:not([disabled]) { background-color: #455A64; }
+        .btn-undo[disabled] { background-color: #cfd8dc; color: #999; cursor: not-allowed; }
+        .btn-clear { background-color: #f44336; }
+        .btn-clear:hover { background-color: #da190b; }
+
+        @media (max-width: 900px) {
+            .layout-wrapper { flex-direction: column; }
+            .sidebar { width: 100%; position: static; }
+            .inner-layout { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="layout-wrapper">
+        <div class="sidebar">
+            <div class="action-btns">
+                <button class="btn-save" onclick="saveState()">💾 เก็บ</button>
+                <button class="btn-undo" id="btnUndo" onclick="undoAction()" disabled>↩️ คืนค่า</button>
+                <button class="btn-clear" onclick="clearState()">🗑 ล้าง</button>
+            </div>
+            <div class="sidebar-menu" id="sidebar-menu">
+                <div class="menu-item" id="menu_summary" onclick="switchTab('summary')">
+                    📊 สรุปภาพรวม
+                </div>
+            </div>
+            <button class="add-item-btn" onclick="createItem(false)">+ เพิ่มรายการ</button>
+        </div>
+
+        <div class="main-content" id="main-content">
+            <div id="view_summary" class="view-panel"></div>
+        </div>
+    </div>
+
+    <script>
+        // ================= สคริปต์ป้องกันการคัดลอก/ดูโค้ด =================
+        // บล็อกการคลิกขวา
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // บล็อกคีย์ลัดต่างๆ (F12, Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+Shift+I/J/C)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F12') {
+                e.preventDefault();
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key)) {
+                e.preventDefault();
+                return false;
+            }
+            if (e.ctrlKey && ['u', 'U', 's', 'S', 'p', 'P'].includes(e.key)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        // ==========================================================
+
+        let itemInstances = {}; 
+        let globalIdCounter = 0;
+        let undoHistory = []; 
+
+        function allowOnlyNumbers(event) {
+            const allowedKeys = ['Backspace', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'Delete', 'Home', 'End'];
+            if (allowedKeys.includes(event.key)) return;
+            if (event.ctrlKey || event.metaKey) return; // ยอมให้ Ctrl+C, Ctrl+V ในช่องกรอกได้
+            if (!/^[0-9.]$/.test(event.key)) event.preventDefault();
+        }
+
+        function formatAndCalculate(inputElement, itemId) {
+            let val = inputElement.value.replace(/[^0-9.]/g, ''); 
+            const parts = val.split('.');
+            if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+            if (val) {
+                const splitVal = val.split('.');
+                splitVal[0] = splitVal[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); 
+                inputElement.value = splitVal.join('.');
+            } else {
+                inputElement.value = '';
+            }
+            calculateAll(itemId);
+        }
+
+        function formatPercentInput(inputElement, targetAction, itemId) {
+            let val = inputElement.value.replace(/[^0-9.]/g, '');
+            const parts = val.split('.');
+            if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+            inputElement.value = val;
+
+            if (targetAction === 'all') calculateAll(itemId);
+            if (targetAction === 'side') calculateSidePanel(itemId);
+        }
+
+        function formatExpandInput(inputElement, itemId) {
+            let val = inputElement.value.replace(/[^0-9.]/g, '');
+            const parts = val.split('.');
+            if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+            inputElement.value = val;
+
+            const state = itemInstances[itemId];
+            const selId = document.getElementById(`select_${itemId}`).value;
+            if (selId && state.groupData[selId]) {
+                state.groupData[selId].expandPct = parseFloat(val) || 0;
+            }
+            calculateSidePanel(itemId);
+        }
+
+        function getRawNumber(elementId) {
+            const el = document.getElementById(elementId);
+            if (!el || !el.value) return 0;
+            return parseFloat(el.value.replace(/,/g, '')) || 0;
+        }
+
+        // ================= เก็บข้อมูล / ล้างข้อมูล (Local Storage) =================
+        function getCurrentState() {
+            let state = {
+                globalIdCounter: globalIdCounter,
+                items: []
+            };
+            
+            document.querySelectorAll('.menu-item.calc-tab').forEach(tab => {
+                const itemId = tab.id.replace('menu_', '');
+                if(!itemInstances[itemId]) return;
+                const inst = itemInstances[itemId];
+                
+                const income = document.getElementById(`income_${itemId}`).value;
+                const cost = document.getElementById(`cost_${itemId}`).value;
+                const limit = document.getElementById(`limit_${itemId}`).value;
+                const title = document.querySelector(`#view_${itemId} .view-title`).innerText;
+                const selectedGroup = document.getElementById(`select_${itemId}`).value;
+                
+                let groups = [];
+                document.querySelectorAll(`#groupList_${itemId} .group-box`).forEach(gb => {
+                    const gId = gb.id;
+                    const name = gb.querySelector('.g-name').value;
+                    const pct = gb.querySelector('.g-pct').value;
+                    const gd = inst.groupData[gId] || { subItems: [], expandPct: 0 };
+                    
+                    groups.push({
+                        id: gId, name: name, pct: pct, expandPct: gd.expandPct,
+                        subItems: JSON.parse(JSON.stringify(gd.subItems)) 
+                    });
+                });
+
+                state.items.push({
+                    id: itemId, title: title, income: income, cost: cost, limit: limit,
+                    groupCount: inst.groupCount, subItemCount: inst.subItemCount,
+                    groups: groups, selectedGroup: selectedGroup
+                });
+            });
+
+            const activeTab = document.querySelector('.menu-item.active');
+            state.activeTabId = activeTab ? activeTab.id.replace('menu_', '') : 'summary';
+            
+            return state;
+        }
+
+        function saveToUndoHistory() {
+            undoHistory.push(JSON.parse(JSON.stringify(getCurrentState())));
+            if(undoHistory.length > 20) undoHistory.shift(); 
+            document.getElementById('btnUndo').disabled = false;
+        }
+
+        function undoAction() {
+            if(undoHistory.length === 0) return;
+            const prevState = undoHistory.pop();
+            if(undoHistory.length === 0) document.getElementById('btnUndo').disabled = true;
+
+            document.querySelectorAll('.calc-tab').forEach(el => el.remove());
+            document.querySelectorAll('.calc-view').forEach(el => el.remove());
+            itemInstances = {};
+            
+            globalIdCounter = prevState.globalIdCounter;
+            
+            prevState.items.forEach((item, index) => {
+                restoreItem(item, index === 0);
+            });
+
+            switchTab(prevState.activeTabId);
+        }
+
+        function saveState() {
+            const state = getCurrentState();
+            localStorage.setItem('profitShareState', JSON.stringify(state));
+            alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
+            
+            if(document.getElementById('menu_summary').classList.contains('active')) {
+                renderSummaryPage();
+            }
+        }
+
+        function clearState() {
+            if(confirm("คุณต้องการล้างข้อมูลทั้งหมด และเริ่มใหม่ใช่หรือไม่? (ข้อมูลที่บันทึกไว้จะถูกลบทั้งหมด)")) {
+                saveToUndoHistory(); 
+                localStorage.removeItem('profitShareState');
+                initDefaultState();
+            }
+        }
+
+        function initDefaultState() {
+            document.querySelectorAll('.calc-tab').forEach(el => el.remove());
+            document.querySelectorAll('.calc-view').forEach(el => el.remove());
+            itemInstances = {};
+            globalIdCounter = 0;
+            
+            createItem(true);  
+            const firstTab = document.querySelector('.calc-tab');
+            if (firstTab) switchTab(firstTab.id.replace('menu_', ''));
+        }
+
+        // ================= สลับหน้าจอ =================
+        function switchTab(tabId) {
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
+            
+            const menuEl = document.getElementById(`menu_${tabId}`);
+            const viewEl = document.getElementById(`view_${tabId}`);
+            if(menuEl) menuEl.classList.add('active');
+            if(viewEl) viewEl.classList.add('active');
+
+            if(tabId === 'summary') {
+                renderSummaryPage();
+            }
+        }
+
+        function renderSummaryPage() {
+            const summaryContainer = document.getElementById('view_summary');
+            summaryContainer.innerHTML = '<h2>📊 สรุปภาพรวมทุกรายการ (ข้อมูลที่ถูกบันทึก)</h2>';
+
+            const saved = localStorage.getItem('profitShareState');
+            if (!saved) {
+                summaryContainer.innerHTML += '<div style="text-align:center; padding: 20px; color:#999; border: 2px dashed #ccc; border-radius: 8px;">ไม่มีข้อมูลที่บันทึก กรุณากดปุ่ม "💾 เก็บข้อมูล" ฝั่งซ้ายมือก่อนครับ</div>';
+                return;
+            }
+
+            const state = JSON.parse(saved);
+            if(state.items.length === 0) {
+                summaryContainer.innerHTML += '<div style="text-align:center; padding: 20px; color:#999;">ไม่มีรายการ</div>';
+                return;
+            }
+
+            window.summaryState = state.items;
+
+            state.items.forEach((item, index) => {
+                const itemId = item.id;
+                
+                const incomeNum = parseFloat(item.income.replace(/,/g, '')) || 0;
+                const costNum = parseFloat(item.cost.replace(/,/g, '')) || 0;
+                const netProfit = incomeNum - costNum;
+                const limitNum = parseFloat(item.limit.replace(/,/g, '')) || 0;
+                const vpp = limitNum > 0 ? netProfit / limitNum : 0;
+
+                let optionsHtml = '<option value="">-- กรุณาเลือกกลุ่ม --</option>';
+                item.groups.forEach(g => {
+                    const dispName = g.name || 'ไม่มีชื่อกลุ่ม';
+                    optionsHtml += `<option value="${g.id}">${dispName}</option>`;
+                });
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'summary-item-wrapper';
+                wrapper.innerHTML = `
+                    <h2 class="view-title" style="color: #555 !important; margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px;">${item.title}</h2>
+                    <div class="inner-layout">
+                        <div class="inner-main">
+                            <div class="main-config">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="input-group">
+                                        <label>ยอดที่เราจบ:</label>
+                                        <input type="text" value="${item.income}" readonly style="background-color:#e9ecef; color:#6c757d; pointer-events:none;">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>ยอดต้นทุนรวม (บาท):</label>
+                                        <input type="text" value="${item.cost}" readonly style="background-color:#e9ecef; color:#6c757d; pointer-events:none;">
+                                    </div>
+                                </div>
+                                <div class="summary-box">
+                                    <div>กำไรสุทธิ: <span class="highlight-text">${netProfit.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</span> บาท</div>
+                                    <div>มูลค่าต่อ 1% = <span class="highlight-text">${vpp.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</span> บาท</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="inner-side">
+                            <h3 style="margin:0 0 10px 0; font-size:16px;">คำนวณแจกแจง / ขยาย % ย่อย</h3>
+                            <div class="input-group">
+                                <label>เลือกกลุ่มมาตั้งต้น:</label>
+                                <select id="sum_select_${itemId}" onchange="renderSummarySidePanel('${itemId}', ${index})">
+                                    ${optionsHtml}
+                                </select>
+                            </div>
+
+                            <div class="summary-box" style="margin-bottom: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div>ตั้งต้น: <span class="highlight-text" id="sum_baseAmt_${itemId}" style="color:#FF9800;">0</span> บ.</div>
+                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
+                                        เป้าหมาย %:
+                                        <input type="text" id="sum_target_${itemId}" value="0" readonly style="width: 50px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #e9ecef; color: #6c757d;"> %
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div style="font-size: 11px; color: #666;">ยอดรวมคำนวณ: <span id="sum_calcAmt_${itemId}" style="font-weight: bold; color:#2196F3;">0</span> บ.</div>
+                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
+                                        ขยาย %:
+                                        <input type="text" id="sum_expand_${itemId}" readonly style="width: 50px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #e9ecef; color: #6c757d;"> %
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: flex-end; align-items: center; border-top: 1px dashed #ccc; padding-top: 8px;">
+                                    <div style="text-align: right; font-size: 12px; font-weight: bold; color: #d32f2f;">
+                                        รวม %:
+                                        <input type="text" id="sum_totalTarget_${itemId}" value="0" readonly style="width: 60px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #e9ecef; color: #d32f2f;"> %
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="sum_subItemList_${itemId}"></div>
+
+                            <div class="summary-box" style="margin-top: 15px; border-color: #9e9e9e; background-color: #f5f5f5;">
+                                <div>แบ่งไปแล้วรวม: <span id="sum_totSubPct_${itemId}" style="font-weight:bold;">0</span>% <span id="sum_alert_${itemId}" style="font-size:12px;"></span></div>
+                                <div>เงินที่แบ่งรวม: <span class="highlight-text" id="sum_totSubAmt_${itemId}" style="color: #d32f2f;">0</span> บาท</div>
+                                <div style="border-top: 1px solid #ccc; padding-top: 6px; margin-top: 6px;">
+                                    คงเหลือสุทธิ: <span class="highlight-text" id="sum_remAmt_${itemId}" style="color: #2e7d32;">0</span> บาท
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                summaryContainer.appendChild(wrapper);
+
+                if(item.selectedGroup) {
+                    document.getElementById(`sum_select_${itemId}`).value = item.selectedGroup;
+                }
+                renderSummarySidePanel(itemId, index);
+            });
+        }
+
+        function renderSummarySidePanel(itemId, itemIndex) {
+            const item = window.summaryState[itemIndex];
+            const selId = document.getElementById(`sum_select_${itemId}`).value;
+            const container = document.getElementById(`sum_subItemList_${itemId}`);
+            container.innerHTML = '';
+
+            const incomeNum = parseFloat(item.income.replace(/,/g, '')) || 0;
+            const costNum = parseFloat(item.cost.replace(/,/g, '')) || 0;
+            const netProfit = incomeNum - costNum;
+            const limitNum = parseFloat(item.limit.replace(/,/g, '')) || 0;
+            const vpp = limitNum > 0 ? netProfit / limitNum : 0;
+
+            let baseAmt = 0;
+            let target = 0;
+            let expand = 0;
+            let subItems = [];
+
+            const group = item.groups.find(g => g.id === selId);
+            if (group) {
+                target = parseFloat(group.pct) || 0;
+                baseAmt = vpp * target;
+                expand = parseFloat(group.expandPct) || 0;
+                subItems = group.subItems || [];
+            }
+
+            const totalTarget = target + expand;
+
+            document.getElementById(`sum_baseAmt_${itemId}`).textContent = baseAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            document.getElementById(`sum_target_${itemId}`).value = target;
+            document.getElementById(`sum_expand_${itemId}`).value = expand || '';
+            document.getElementById(`sum_totalTarget_${itemId}`).value = totalTarget;
+
+            let onePercentValue = 0;
+            if (totalTarget > 0) {
+                onePercentValue = baseAmt / totalTarget; 
+            }
+            const calcAmt = onePercentValue * totalTarget; 
+            document.getElementById(`sum_calcAmt_${itemId}`).textContent = calcAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+
+            let totPct = 0;
+            let totAmt = 0;
+
+            subItems.forEach(sub => {
+                const p = parseFloat(sub.pct) || 0;
+                totPct += p;
+                let a = onePercentValue * p;
+                totAmt += a;
+                
+                const html = `
+                    <div class="sub-item-box" style="background-color:#fdfdfd;">
+                        <div class="sub-item-header">
+                            <input type="text" value="${sub.name}" readonly style="background-color:#e9ecef; color:#6c757d; pointer-events:none; width:100%;">
+                        </div>
+                        <div class="sub-item-row" style="margin-top:6px;">
+                            <input type="text" value="${sub.pct}" readonly style="background-color:#e9ecef; color:#6c757d; pointer-events:none; width:45%;">
+                            <span class="sub-amount-display">${a.toLocaleString('th-TH', { maximumFractionDigits: 2 })} บาท</span>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+
+            const alertSp = document.getElementById(`sum_alert_${itemId}`);
+            const rTot = Math.round(totPct*100)/100;
+            const rTar = Math.round(totalTarget*100)/100;
+
+            if (rTot > rTar) alertSp.innerHTML = `<span style="color:red;">(⚠️ เกิน ${(rTot-rTar).toFixed(2)}%)</span>`;
+            else if (rTot < rTar) alertSp.innerHTML = `<span style="color:#FF9800;">(ขาด ${(rTar-rTot).toFixed(2)}%)</span>`;
+            else alertSp.innerHTML = `<span style="color:green;">(ครบ)</span>`;
+
+            document.getElementById(`sum_totSubPct_${itemId}`).textContent = rTot;
+            document.getElementById(`sum_totSubAmt_${itemId}`).textContent = totAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            document.getElementById(`sum_remAmt_${itemId}`).textContent = (baseAmt - totAmt).toLocaleString('th-TH', { maximumFractionDigits: 2 });
+        }
+
+
+        // ================= จัดการรายการ (Tabs) สำหรับโหมดแก้ไข =================
+        function createItem(isFixed = false) {
+            globalIdCounter++;
+            const itemId = `item_${Date.now()}_${globalIdCounter}`;
+            
+            itemInstances[itemId] = { groupCount: 0, subItemCount: 0, groupData: {} };
+
+            const menuHTML = `
+                <div class="menu-item calc-tab" id="menu_${itemId}" onclick="switchTab('${itemId}')">
+                    <span class="menu-title"></span>
+                    <span class="delete-icon" onclick="deleteItem('${itemId}', event)">✖</span>
+                </div>
+            `;
+            document.getElementById('sidebar-menu').insertAdjacentHTML('beforeend', menuHTML);
+
+            const viewHTML = `
+                <div class="view-panel calc-view" id="view_${itemId}">
+                    <h2 class="view-title" style="color: var(--primary-color);"></h2>
+                    
+                    <div class="inner-layout">
+                        <div class="inner-main">
+                            <div class="main-config">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="input-group">
+                                        <label>ยอดที่เราจบ:</label>
+                                        <input type="text" id="income_${itemId}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatAndCalculate(this, '${itemId}')">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>ยอดต้นทุนรวม (บาท):</label>
+                                        <input type="text" id="cost_${itemId}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatAndCalculate(this, '${itemId}')">
+                                    </div>
+                                </div>
+                                <div class="summary-box">
+                                    <div>กำไรสุทธิ: <span class="highlight-text" id="netProfit_${itemId}">0</span> บาท</div>
+                                    <div>มูลค่าต่อ 1% = <span class="highlight-text" id="valuePerPct_${itemId}">0</span> บาท</div>
+                                </div>
+                            </div>
+
+                            <div class="percent-tracker-box">
+                                <div class="input-group" style="margin-bottom: 5px;">
+                                    <label>กำหนดช่อง % ใหญ่ (เปอร์เซ็นต์รวมสูงสุดของโครงการ):</label>
+                                    <input type="text" id="limit_${itemId}" value="100" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${itemId}')">
+                                </div>
+                                <div id="trackerStatus_${itemId}" style="font-size: 13px; margin-top: 5px; padding: 6px 10px; border-radius: 4px; background-color: #fff;"></div>
+                            </div>
+
+                            <div class="group-container" id="groupList_${itemId}"></div>
+                            <button class="add-btn" onclick="addGroup('${itemId}')">+ เพิ่มกลุ่มผู้รับเงิน</button>
+                        </div>
+
+                        <div class="inner-side">
+                            <h3 style="margin:0 0 10px 0; font-size:16px;">คำนวณแจกแจง / ขยาย % ย่อย</h3>
+                            <div class="input-group">
+                                <label>เลือกกลุ่มมาตั้งต้น:</label>
+                                <select id="select_${itemId}" onchange="onGroupSelectChange('${itemId}')">
+                                    <option value="">-- กรุณาเลือกกลุ่ม --</option>
+                                </select>
+                            </div>
+
+                            <div class="summary-box" style="margin-bottom: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div>ตั้งต้น: <span class="highlight-text" id="baseAmt_${itemId}" style="color:#FF9800;">0</span> บ.</div>
+                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
+                                        เป้าหมาย %:
+                                        <input type="text" id="target_${itemId}" value="0" readonly style="width: 50px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #f0f0f0; color: #555;"> %
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div style="font-size: 11px; color: #666;">ยอดรวมคำนวณ: <span id="calcAmt_${itemId}" style="font-weight: bold; color:#2196F3;">0</span> บ.</div>
+                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
+                                        ขยาย %:
+                                        <input type="text" id="expand_${itemId}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatExpandInput(this, '${itemId}')" style="width: 50px; text-align: center; font-weight: bold; border-color: #2196F3; padding: 4px;"> %
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: flex-end; align-items: center; border-top: 1px dashed #ccc; padding-top: 8px;">
+                                    <div style="text-align: right; font-size: 12px; font-weight: bold; color: #d32f2f;">
+                                        รวม %:
+                                        <input type="text" id="totalTarget_${itemId}" value="0" readonly style="width: 60px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #f0f0f0; color: #d32f2f;"> %
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="add-sub-btn" onclick="addSubItem('${itemId}')">+ เพิ่มส่วนแบ่งย่อย</button>
+                            <div id="subItemList_${itemId}"></div>
+
+                            <div class="summary-box" style="margin-top: 15px; border-color: #9e9e9e; background-color: #f5f5f5;">
+                                <div>แบ่งไปแล้วรวม: <span id="totSubPct_${itemId}" style="font-weight:bold;">0</span>% <span id="alert_${itemId}" style="font-size:12px;"></span></div>
+                                <div>เงินที่แบ่งรวม: <span class="highlight-text" id="totSubAmt_${itemId}" style="color: #d32f2f;">0</span> บาท</div>
+                                <div style="border-top: 1px solid #ccc; padding-top: 6px; margin-top: 6px;">
+                                    คงเหลือสุทธิ: <span class="highlight-text" id="remAmt_${itemId}" style="color: #2e7d32;">0</span> บาท
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('main-content').insertAdjacentHTML('beforeend', viewHTML);
+
+            updateItemSequence();
+
+            addGroup(itemId);
+            addGroup(itemId);
+
+            setTimeout(() => {
+                const select = document.getElementById(`select_${itemId}`);
+                if (select && select.options.length > 1) {
+                    select.selectedIndex = 1;
+                    onGroupSelectChange(itemId);
+                }
+            }, 50);
+        }
+
+        function restoreItem(itemData, isFirst) {
+            const itemId = itemData.id;
+            itemInstances[itemId] = {
+                groupCount: itemData.groupCount,
+                subItemCount: itemData.subItemCount,
+                groupData: {}
+            };
+
+            const menuHTML = `
+                <div class="menu-item calc-tab" id="menu_${itemId}" onclick="switchTab('${itemId}')">
+                    <span class="menu-title">${itemData.title}</span>
+                    <span class="delete-icon" onclick="deleteItem('${itemId}', event)" style="display:${isFirst?'none':'inline'};">✖</span>
+                </div>
+            `;
+            document.getElementById('sidebar-menu').insertAdjacentHTML('beforeend', menuHTML);
+
+            const viewHTML = `
+                <div class="view-panel calc-view" id="view_${itemId}">
+                    <h2 class="view-title" style="color: var(--primary-color);">${itemData.title}</h2>
+                    
+                    <div class="inner-layout">
+                        <div class="inner-main">
+                            <div class="main-config">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="input-group">
+                                        <label>ยอดที่เราจบ:</label>
+                                        <input type="text" id="income_${itemId}" value="${itemData.income}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatAndCalculate(this, '${itemId}')">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>ยอดต้นทุนรวม (บาท):</label>
+                                        <input type="text" id="cost_${itemId}" value="${itemData.cost}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatAndCalculate(this, '${itemId}')">
+                                    </div>
+                                </div>
+                                <div class="summary-box">
+                                    <div>กำไรสุทธิ: <span class="highlight-text" id="netProfit_${itemId}">0</span> บาท</div>
+                                    <div>มูลค่าต่อ 1% = <span class="highlight-text" id="valuePerPct_${itemId}">0</span> บาท</div>
+                                </div>
+                            </div>
+
+                            <div class="percent-tracker-box">
+                                <div class="input-group" style="margin-bottom: 5px;">
+                                    <label>กำหนดช่อง % ใหญ่ (เปอร์เซ็นต์รวมสูงสุดของโครงการ):</label>
+                                    <input type="text" id="limit_${itemId}" value="${itemData.limit}" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${itemId}')">
+                                </div>
+                                <div id="trackerStatus_${itemId}" style="font-size: 13px; margin-top: 5px; padding: 6px 10px; border-radius: 4px; background-color: #fff;"></div>
+                            </div>
+
+                            <div class="group-container" id="groupList_${itemId}"></div>
+                            <button class="add-btn" onclick="addGroup('${itemId}')">+ เพิ่มกลุ่มผู้รับเงิน</button>
+                        </div>
+
+                        <div class="inner-side">
+                            <h3 style="margin:0 0 10px 0; font-size:16px;">คำนวณแจกแจง / ขยาย % ย่อย</h3>
+                            <div class="input-group">
+                                <label>เลือกกลุ่มมาตั้งต้น:</label>
+                                <select id="select_${itemId}" onchange="onGroupSelectChange('${itemId}')">
+                                    <option value="">-- กรุณาเลือกกลุ่ม --</option>
+                                </select>
+                            </div>
+
+                            <div class="summary-box" style="margin-bottom: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div>ตั้งต้น: <span class="highlight-text" id="baseAmt_${itemId}" style="color:#FF9800;">0</span> บ.</div>
+                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
+                                        เป้าหมาย %:
+                                        <input type="text" id="target_${itemId}" value="0" readonly style="width: 50px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #f0f0f0; color: #555;"> %
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div style="font-size: 11px; color: #666;">ยอดรวมคำนวณ: <span id="calcAmt_${itemId}" style="font-weight: bold; color:#2196F3;">0</span> บ.</div>
+                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
+                                        ขยาย %:
+                                        <input type="text" id="expand_${itemId}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatExpandInput(this, '${itemId}')" style="width: 50px; text-align: center; font-weight: bold; border-color: #2196F3; padding: 4px;"> %
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: flex-end; align-items: center; border-top: 1px dashed #ccc; padding-top: 8px;">
+                                    <div style="text-align: right; font-size: 12px; font-weight: bold; color: #d32f2f;">
+                                        รวม %:
+                                        <input type="text" id="totalTarget_${itemId}" value="0" readonly style="width: 60px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #f0f0f0; color: #d32f2f;"> %
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="add-sub-btn" onclick="addSubItem('${itemId}')">+ เพิ่มส่วนแบ่งย่อย</button>
+                            <div id="subItemList_${itemId}"></div>
+
+                            <div class="summary-box" style="margin-top: 15px; border-color: #9e9e9e; background-color: #f5f5f5;">
+                                <div>แบ่งไปแล้วรวม: <span id="totSubPct_${itemId}" style="font-weight:bold;">0</span>% <span id="alert_${itemId}" style="font-size:12px;"></span></div>
+                                <div>เงินที่แบ่งรวม: <span class="highlight-text" id="totSubAmt_${itemId}" style="color: #d32f2f;">0</span> บาท</div>
+                                <div style="border-top: 1px solid #ccc; padding-top: 6px; margin-top: 6px;">
+                                    คงเหลือสุทธิ: <span class="highlight-text" id="remAmt_${itemId}" style="color: #2e7d32;">0</span> บาท
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('main-content').insertAdjacentHTML('beforeend', viewHTML);
+
+            itemData.groups.forEach((g, index) => {
+                const gId = g.id;
+                
+                itemInstances[itemId].groupData[gId] = {
+                    amt: 0,
+                    pct: parseFloat(String(g.pct).replace(/,/g, '')) || 0,
+                    expandPct: parseFloat(String(g.expandPct).replace(/,/g, '')) || 0,
+                    subItems: g.subItems || []
+                };
+
+                const gHtml = `
+                    <div class="group-box" id="${gId}">
+                        <div class="group-header">
+                            <input type="text" class="g-name" placeholder="ชื่อกลุ่ม" value="${g.name}" oninput="calculateAll('${itemId}')">
+                            <button class="remove-btn" onclick="removeGroup('${itemId}', '${gId}')" style="display:${index<2?'none':'inline'};">ลบ</button>
+                        </div>
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label>ส่วนแบ่ง (%):</label>
+                            <input type="text" class="g-pct" placeholder="0" value="${g.pct}" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${itemId}')">
+                        </div>
+                        <div class="result-box">ยอดรวมกลุ่ม: <span class="highlight-text g-amt">0</span> บาท</div>
+                    </div>
+                `;
+                document.getElementById(`groupList_${itemId}`).insertAdjacentHTML('beforeend', gHtml);
+            });
+            
+            updateGroupSequence(itemId);
+            calculateAll(itemId);
+
+            if (itemData.selectedGroup) {
+                setTimeout(() => {
+                    const select = document.getElementById(`select_${itemId}`);
+                    if(select) {
+                        select.value = itemData.selectedGroup;
+                        onGroupSelectChange(itemId);
+                    }
+                }, 50);
+            }
+        }
+
+        function deleteItem(itemId, event) {
+            event.stopPropagation();
+            if(confirm("ยืนยันการลบรายการนี้ใช่หรือไม่?")) {
+                saveToUndoHistory();
+                document.getElementById(`menu_${itemId}`).remove();
+                document.getElementById(`view_${itemId}`).remove();
+                delete itemInstances[itemId];
+                updateItemSequence();
+                
+                const firstTab = document.querySelector('.calc-tab');
+                if (firstTab) {
+                    switchTab(firstTab.id.replace('menu_', ''));
+                } else {
+                    switchTab('summary');
+                }
+            }
+        }
+
+        function updateItemSequence() {
+            const tabs = document.querySelectorAll('.menu-item.calc-tab');
+            tabs.forEach((tab, index) => {
+                const num = index + 1;
+                const titleText = `รายการ ${num}`;
+                tab.querySelector('.menu-title').textContent = titleText;
+                
+                const delIcon = tab.querySelector('.delete-icon');
+                if (num === 1) {
+                    if(delIcon) delIcon.style.display = 'none'; 
+                } else {
+                    if(delIcon) delIcon.style.display = 'inline'; 
+                }
+
+                const itemId = tab.id.replace('menu_', '');
+                document.querySelector(`#view_${itemId} .view-title`).textContent = titleText;
+            });
+        }
+
+        // ================= ระบบคำนวณฝั่งซ้าย (กลุ่มหลัก) =================
+        function addGroup(itemId) {
+            const state = itemInstances[itemId];
+            state.groupCount++;
+            const groupId = `${itemId}_g_${state.groupCount}`;
+            
+            state.groupData[groupId] = {
+                amt: 0,
+                pct: 0,
+                expandPct: 0, 
+                subItems: [
+                    { id: `${groupId}_s_1`, name: '', pct: '' },
+                    { id: `${groupId}_s_2`, name: '', pct: '' }
+                ]
+            };
+
+            const html = `
+                <div class="group-box" id="${groupId}">
+                    <div class="group-header">
+                        <input type="text" class="g-name" placeholder="ชื่อกลุ่ม" oninput="calculateAll('${itemId}')">
+                        <button class="remove-btn" onclick="removeGroup('${itemId}', '${groupId}')">ลบ</button>
+                    </div>
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label>ส่วนแบ่ง (%):</label>
+                        <input type="text" class="g-pct" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${itemId}')">
+                    </div>
+                    <div class="result-box">ยอดรวมกลุ่ม: <span class="highlight-text g-amt">0</span> บาท</div>
+                </div>
+            `;
+            document.getElementById(`groupList_${itemId}`).insertAdjacentHTML('beforeend', html);
+            updateGroupSequence(itemId);
+            calculateAll(itemId);
+        }
+
+        function removeGroup(itemId, groupId) {
+            saveToUndoHistory();
+            document.getElementById(groupId).remove();
+            const state = itemInstances[itemId];
+            delete state.groupData[groupId];
+            updateGroupSequence(itemId);
+            calculateAll(itemId);
+
+            const select = document.getElementById(`select_${itemId}`);
+            if (select.value === groupId || select.value === '') {
+                select.selectedIndex = 0;
+                renderSidePanel(itemId);
+            }
+        }
+
+        function updateGroupSequence(itemId) {
+            const groups = document.querySelectorAll(`#groupList_${itemId} .group-box`);
+            groups.forEach((group, index) => {
+                const num = index + 1;
+                group.querySelector('.g-name').placeholder = `กลุ่มที่ ${num} / ชื่อ`;
+                const rBtn = group.querySelector('.remove-btn');
+                
+                if (num <= 2) { 
+                    if(rBtn) rBtn.style.display = 'none'; 
+                } 
+                else { 
+                    if(rBtn) rBtn.style.display = 'inline'; 
+                }
+            });
+        }
+
+        function calculateAll(itemId) {
+            const state = itemInstances[itemId];
+            const income = getRawNumber(`income_${itemId}`);
+            const cost = getRawNumber(`cost_${itemId}`);
+            const netProfit = income - cost;
+            const limit = parseFloat(document.getElementById(`limit_${itemId}`).value) || 0;
+            
+            let vpp = 0;
+            if (limit > 0) vpp = netProfit / limit;
+
+            document.getElementById(`netProfit_${itemId}`).textContent = netProfit.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            document.getElementById(`valuePerPct_${itemId}`).textContent = vpp.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+
+            let totalPct = 0;
+            const select = document.getElementById(`select_${itemId}`);
+            const currentSel = select.value;
+            select.innerHTML = '<option value="">-- กรุณาเลือกกลุ่ม --</option>';
+
+            const groups = document.querySelectorAll(`#groupList_${itemId} .group-box`);
+            groups.forEach(group => {
+                const gId = group.id;
+                const pct = parseFloat(group.querySelector('.g-pct').value) || 0;
+                const name = group.querySelector('.g-name').value || group.querySelector('.g-name').placeholder;
+                
+                totalPct += pct;
+                const amt = vpp * pct;
+                group.querySelector('.g-amt').textContent = amt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+                
+                if(!state.groupData[gId]) state.groupData[gId] = { amt:0, pct:0, expandPct:0, subItems:[] };
+                state.groupData[gId].amt = amt;
+                state.groupData[gId].pct = pct; 
+                
+                const opt = document.createElement('option');
+                opt.value = gId; opt.textContent = name;
+                select.appendChild(opt);
+            });
+
+            if (currentSel && state.groupData[currentSel]) select.value = currentSel;
+
+            const status = document.getElementById(`trackerStatus_${itemId}`);
+            if (totalPct > limit) {
+                status.innerHTML = `<b style="color:red;">⚠️ รวมแล้ว ${totalPct}% (เกิน ${limit}%)!</b>`;
+                status.parentElement.style.borderColor = "red";
+            } else {
+                const rem = Math.round((limit - totalPct)*100)/100;
+                status.innerHTML = `<b style="color:green;">✅ รวมแล้ว: ${totalPct}% (เหลือ: ${rem}%)</b>`;
+                status.parentElement.style.borderColor = "var(--secondary-color)";
+            }
+
+            calculateSidePanel(itemId); 
+        }
+
+        // ================= ระบบฝั่งขวา (จดจำและดึงข้อมูลตามกลุ่ม) =================
+        function onGroupSelectChange(itemId) {
+            renderSidePanel(itemId);
+        }
+
+        function renderSidePanel(itemId) {
+            const state = itemInstances[itemId];
+            const selId = document.getElementById(`select_${itemId}`).value;
+            const container = document.getElementById(`subItemList_${itemId}`);
+            
+            const targetInput = document.getElementById(`target_${itemId}`);
+            const expandInput = document.getElementById(`expand_${itemId}`);
+            
+            container.innerHTML = ''; 
+
+            if (!selId || !state.groupData[selId]) {
+                targetInput.value = '0';
+                expandInput.value = '';
+                calculateSidePanel(itemId);
+                return;
+            }
+
+            const gData = state.groupData[selId];
+            
+            targetInput.value = gData.pct; 
+            expandInput.value = gData.expandPct || ''; 
+
+            gData.subItems.forEach((sub, index) => {
+                // ซ่อนปุ่มลบ 2 อันแรก
+                let removeHtml = '';
+                if (index >= 2) {
+                    removeHtml = `<button class="remove-btn" onclick="removeSubItem('${itemId}', '${selId}', '${sub.id}')">ลบ</button>`;
+                }
+
+                const html = `
+                    <div class="sub-item-box" id="${sub.id}">
+                        <div class="sub-item-header">
+                            <input type="text" placeholder="ชื่อผู้รับ/รายละเอียด" value="${sub.name}" oninput="updateSubItemData('${itemId}', '${selId}', '${sub.id}', 'name', this.value)">
+                            ${removeHtml}
+                        </div>
+                        <div class="sub-item-row">
+                            <input type="text" class="s-pct" placeholder="ใส่ %" value="${sub.pct}" onkeydown="allowOnlyNumbers(event)" oninput="updateSubItemData('${itemId}', '${selId}', '${sub.id}', 'pct', this.value); formatPercentInput(this, 'side', '${itemId}');">
+                            <span class="sub-amount-display s-amt">0 บาท</span>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+
+            calculateSidePanel(itemId);
+        }
+
+        function updateSubItemData(itemId, groupId, subId, field, value) {
+            const state = itemInstances[itemId];
+            if (!state.groupData[groupId]) return;
+            const sub = state.groupData[groupId].subItems.find(s => s.id === subId);
+            if (sub) {
+                if (field === 'pct') {
+                    value = value.replace(/[^0-9.]/g, '');
+                    const parts = value.split('.');
+                    if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
+                }
+                sub[field] = value;
+            }
+        }
+
+        function addSubItem(itemId) {
+            const selId = document.getElementById(`select_${itemId}`).value;
+            if (!selId) {
+                alert("กรุณาเลือกกลุ่มก่อนเพิ่มส่วนแบ่งย่อย");
+                return;
+            }
+            const state = itemInstances[itemId];
+            state.subItemCount++;
+            const subId = `${selId}_s_${state.subItemCount}`;
+
+            state.groupData[selId].subItems.push({ id: subId, name: '', pct: '' });
+            renderSidePanel(itemId); 
+        }
+
+        function removeSubItem(itemId, groupId, subId) {
+            saveToUndoHistory();
+            const state = itemInstances[itemId];
+            state.groupData[groupId].subItems = state.groupData[groupId].subItems.filter(s => s.id !== subId);
+            renderSidePanel(itemId);
+        }
+
+        function calculateSidePanel(itemId) {
+            const state = itemInstances[itemId];
+            const selId = document.getElementById(`select_${itemId}`).value;
+            
+            let baseAmt = 0;
+            let target = 0;
+            let expand = 0;
+            
+            if (selId && state.groupData[selId]) {
+                baseAmt = state.groupData[selId].amt;
+                target = state.groupData[selId].pct; 
+                expand = state.groupData[selId].expandPct || 0;
+            }
+
+            const totalTarget = target + expand;
+
+            document.getElementById(`baseAmt_${itemId}`).textContent = baseAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            document.getElementById(`target_${itemId}`).value = target; 
+            document.getElementById(`totalTarget_${itemId}`).value = totalTarget; 
+
+            let onePercentValue = 0;
+            if (totalTarget > 0) {
+                onePercentValue = baseAmt / totalTarget; 
+            }
+            const calcAmt = onePercentValue * totalTarget; 
+            document.getElementById(`calcAmt_${itemId}`).textContent = calcAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+
+            let totPct = 0;
+            let totAmt = 0;
+
+            const subs = document.querySelectorAll(`#subItemList_${itemId} .sub-item-box`);
+            subs.forEach(sub => {
+                const p = parseFloat(sub.querySelector('.s-pct').value) || 0;
+                totPct += p;
+                
+                let a = onePercentValue * p;
+                totAmt += a;
+                sub.querySelector('.s-amt').textContent = a.toLocaleString('th-TH', { maximumFractionDigits: 2 }) + ' บาท';
+            });
+
+            const alertSp = document.getElementById(`alert_${itemId}`);
+            const rTot = Math.round(totPct*100)/100;
+            const rTar = Math.round(totalTarget*100)/100; 
+
+            if (rTot > rTar) alertSp.innerHTML = `<span style="color:red;">(⚠️ เกิน ${(rTot-rTar).toFixed(2)}%)</span>`;
+            else if (rTot < rTar) alertSp.innerHTML = `<span style="color:#FF9800;">(ขาด ${(rTar-rTot).toFixed(2)}%)</span>`;
+            else alertSp.innerHTML = `<span style="color:green;">(ครบ)</span>`;
+
+            document.getElementById(`totSubPct_${itemId}`).textContent = rTot;
+            document.getElementById(`totSubAmt_${itemId}`).textContent = totAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            document.getElementById(`remAmt_${itemId}`).textContent = (baseAmt - totAmt).toLocaleString('th-TH', { maximumFractionDigits: 2 });
+        }
+
+        window.onload = () => {
+            const saved = localStorage.getItem('profitShareState');
+            if (saved) {
+                try {
+                    const state = JSON.parse(saved);
+                    globalIdCounter = state.globalIdCounter || 0;
+                    
+                    if (state.items.length === 0) throw new Error("No items");
+
+                    state.items.forEach((item, index) => {
+                        restoreItem(item, index === 0);
+                    });
+                    
+                    if(state.activeTabId && document.getElementById(`menu_${state.activeTabId}`)) {
+                        switchTab(state.activeTabId);
+                    } else {
+                        const firstTab = document.querySelector('.calc-tab');
+                        if (firstTab) switchTab(firstTab.id.replace('menu_', ''));
+                    }
+                } catch(e) {
+                    initDefaultState();
+                }
+            } else {
+                initDefaultState();
+            }
+        };
+    </script>
+
+</body>
+</html>
