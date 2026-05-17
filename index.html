@@ -81,23 +81,34 @@
         .highlight-text { font-weight: bold; color: #d32f2f; font-size: 15px; }
 
         .group-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
-        .group-box { border: 1px solid var(--border-color); padding: 12px; border-radius: 6px; background-color: #fafafa; }
-        .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .group-header input { width: 80%; font-weight: bold; }
+        .group-box { border: 1px solid var(--border-color); padding: 12px; border-radius: 6px; background-color: #fafafa; transition: all 0.3s; }
+        .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 5px;}
+        .group-header input { flex: 1; font-weight: bold; }
         .result-box { margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; text-align: right; font-size: 13px; }
 
         button.add-btn { background-color: var(--primary-color); color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
         button.add-sub-btn { background-color: var(--secondary-color); color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; margin-bottom: 10px;}
+        
         .remove-btn { background-color: #ff4c4c; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
+        
+        /* สไตล์ปุ่มออกและกล่องสีเทา */
+        .leave-btn { background-color: #757575; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
+        .leave-btn:hover { background-color: #616161; }
+        .leave-btn.active { background-color: #FF9800; }
+        .leave-btn.active:hover { background-color: #F57C00; }
+        
+        .opted-out-box { background-color: #e0e0e0 !important; opacity: 0.65; border: 1px dashed #999 !important; }
+        .opted-out-box input { pointer-events: none; background-color: #eeeeee; color: #888; }
+        .opted-out-box .g-name { text-decoration: line-through; }
+        .opted-out-box .sub-item-header input { text-decoration: line-through; }
 
-        .sub-item-box { background-color: #fff; border: 1px solid #e0e0e0; padding: 8px; border-radius: 6px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px; }
-        .sub-item-header { display: flex; justify-content: space-between; }
-        .sub-item-header input { width: 80%; }
+        .sub-item-box { background-color: #fff; border: 1px solid #e0e0e0; padding: 8px; border-radius: 6px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px; transition: all 0.3s;}
+        .sub-item-header { display: flex; justify-content: space-between; gap: 5px; }
+        .sub-item-header input { flex: 1; }
         .sub-item-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
         .sub-item-row input { width: 45%; }
-        .sub-amount-display { font-weight: bold; color: #1976D2; font-size: 13px;}
+        .sub-amount-display { font-weight: bold; color: #1976D2; font-size: 13px; text-align: right;}
 
-        /* สไตล์หน้าสรุปแบบ Report */
         .summary-card { border: 1px solid #e0e0e0; border-radius: 10px; padding: 20px; margin-bottom: 30px; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .summary-card h2.view-title { color: var(--primary-color) !important; margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px; text-align: left; }
         .summary-round { margin-bottom: 20px; padding: 15px 0; border-bottom: 1px dashed #ccc; }
@@ -166,6 +177,13 @@
         let globalIdCounter = 0;
         let undoHistory = []; 
 
+        function getRoundIndex(roundId) {
+            const itemId = roundId.split('_r_')[0];
+            const item = itemInstances[itemId];
+            if (!item) return 0;
+            return item.rounds.indexOf(roundId);
+        }
+
         function allowOnlyNumbers(event) {
             const allowedKeys = ['Backspace', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'Delete', 'Home', 'End'];
             if (allowedKeys.includes(event.key)) return;
@@ -217,7 +235,7 @@
             return parseFloat(el.value.replace(/,/g, '')) || 0;
         }
 
-        // ================= เก็บข้อมูล / ล้างข้อมูล (Local Storage) =================
+        // ================= เก็บข้อมูล / ล้างข้อมูล =================
         function getCurrentState() {
             let state = { globalIdCounter: globalIdCounter, items: [] };
             
@@ -230,22 +248,43 @@
                 let roundsData = [];
                 itemInst.rounds.forEach(roundId => {
                     const rInst = roundInstances[roundId];
+
+                    const activeSel = document.getElementById(`select_${roundId}`);
+                    if (activeSel) {
+                        const selId = activeSel.value;
+                        if (selId && rInst.groupData[selId]) {
+                            const subsDOM = document.querySelectorAll(`#subItemList_${roundId} .sub-item-box`);
+                            if (subsDOM.length > 0) {
+                                rInst.groupData[selId].subItems = Array.from(subsDOM).map(sub => {
+                                    const existState = rInst.groupData[selId].subItems.find(s => s.id === sub.id) || {};
+                                    return {
+                                        id: sub.id,
+                                        name: sub.querySelector('.sub-item-header input').value,
+                                        pct: sub.querySelector('.s-pct').value,
+                                        isOptOut: existState.isOptOut || false,
+                                        amt: existState.amt || 0,
+                                        effectivePct: existState.effectivePct || 0
+                                    };
+                                });
+                            }
+                        }
+                    }
+
                     const income = document.getElementById(`income_${roundId}`).value;
                     const cost = document.getElementById(`cost_${roundId}`).value;
                     const limit = document.getElementById(`limit_${roundId}`).value;
                     const selectedGroup = document.getElementById(`select_${roundId}`).value;
                     
                     let groups = [];
-                    // ดึงข้อมูลกลุ่มหลักบนหน้าจอซ้ายมือ
                     document.querySelectorAll(`#groupList_${roundId} .group-box`).forEach(gb => {
                         const gId = gb.id;
                         const name = gb.querySelector('.g-name').value;
                         const pct = gb.querySelector('.g-pct').value;
-                        const gd = rInst.groupData[gId] || { subItems: [], expandPct: 0 };
+                        const gd = rInst.groupData[gId] || { subItems: [], expandPct: 0, isOptOut: false };
                         
-                        // ไม่ดึงหน้าจอขวามืออีกต่อไป! เพราะ memory อัปเดตครบถ้วนและแม่นยำที่สุดผ่าน oninput
                         groups.push({
                             id: gId, name: name, pct: pct, expandPct: gd.expandPct,
+                            isOptOut: gd.isOptOut, amt: gd.amt || 0, effectivePct: gd.effectivePct || 0,
                             subItems: JSON.parse(JSON.stringify(gd.subItems)) 
                         });
                     });
@@ -330,6 +369,7 @@
             if(tabId === 'summary') renderSummaryPage();
         }
 
+        // ================= หน้าสรุปภาพรวม =================
         function renderSummaryPage() {
             const summaryContainer = document.getElementById('view_summary');
             summaryContainer.innerHTML = '<h2>📊 สรุปภาพรวมทุกรายการ (ข้อมูลที่ถูกบันทึก)</h2>';
@@ -362,7 +402,8 @@
 
                     let optionsHtml = '<option value="">-- กรุณาเลือกกลุ่ม --</option>';
                     round.groups.forEach(g => {
-                        const dispName = (g.name || 'ไม่มีชื่อกลุ่ม').replace(/"/g, '&quot;');
+                        const optOutText = g.isOptOut ? ' (ออก)' : '';
+                        const dispName = (g.name || 'ไม่มีชื่อกลุ่ม').replace(/"/g, '&quot;') + optOutText;
                         const isSelected = g.id === round.selectedGroup ? 'selected' : '';
                         optionsHtml += `<option value="${g.id}" ${isSelected}>${dispName}</option>`;
                     });
@@ -425,11 +466,20 @@
             const target = parseFloat(selGroup.pct) || 0;
             const expand = parseFloat(selGroup.expandPct) || 0;
             const totalTarget = target + expand;
-            const baseAmt = vpp * target;
-            
+            const baseAmt = selGroup.isOptOut ? 0 : (vpp * (selGroup.effectivePct || target)); // ถ้ากลุ่มออกให้ฐานเป็น 0
+
+            let totalInputSubPct = 0;
+            let activeInputSubPct = 0;
+            (selGroup.subItems || []).forEach(sub => {
+                const p = parseFloat(sub.pct) || 0;
+                totalInputSubPct += p;
+                if(!sub.isOptOut) activeInputSubPct += p;
+            });
+
+            const subMultiplier = activeInputSubPct > 0 ? (totalInputSubPct / activeInputSubPct) : 0;
             let onePercentValue = 0;
             if (totalTarget > 0) onePercentValue = baseAmt / totalTarget;
-            
+
             let totPct = 0;
             let totAmt = 0;
             let subRows = '';
@@ -437,13 +487,31 @@
             (selGroup.subItems || []).forEach(sub => {
                 const p = parseFloat(sub.pct) || 0;
                 totPct += p;
-                const a = onePercentValue * p;
+                
+                let effectiveP = 0;
+                if(!sub.isOptOut && !selGroup.isOptOut) effectiveP = p * subMultiplier;
+                
+                const a = onePercentValue * effectiveP;
                 totAmt += a;
+
                 const safeName = (sub.name || '<i style="color:#999;">ไม่ระบุชื่อ</i>');
+                let rowStyle = sub.isOptOut || selGroup.isOptOut ? 'opacity:0.6; background-color:#f5f5f5;' : '';
+                let nameStyle = sub.isOptOut ? 'text-decoration:line-through;' : '';
+                
+                let valDisplay = '';
+                if(sub.isOptOut || selGroup.isOptOut) {
+                    valDisplay = `<span style="color:red;">(ออก) 0.00 บาท</span>`;
+                } else {
+                    valDisplay = `<span style="color: #d32f2f; font-weight: bold;">${a.toLocaleString('th-TH', { maximumFractionDigits: 2 })} บาท</span>`;
+                    if(subMultiplier > 1) {
+                        valDisplay = `<span style="font-size:11px;color:var(--secondary-color);">(${effectiveP.toFixed(2)}%)</span> ` + valDisplay;
+                    }
+                }
+
                 subRows += `
-                    <div class="breakdown-row">
-                        <span>- ${safeName}</span>
-                        <span><b>${p}%</b> &nbsp;&nbsp;&nbsp; <span style="color: #d32f2f; font-weight: bold;">${a.toLocaleString('th-TH', { maximumFractionDigits: 2 })} บาท</span></span>
+                    <div class="breakdown-row" style="${rowStyle}">
+                        <span style="${nameStyle}">- ${safeName}</span>
+                        <span><b>${p}%</b> &nbsp;&nbsp;&nbsp; ${valDisplay}</span>
                     </div>
                 `;
             });
@@ -455,7 +523,10 @@
             else if (rTot < rTar) alertHtml = `<span style="color:#FF9800; margin-left: 5px;">(ขาด ${(rTar-rTot).toFixed(2)}%)</span>`;
             else alertHtml = `<span style="color:green; margin-left: 5px;">(ครบ)</span>`;
 
+            let groupAlert = selGroup.isOptOut ? `<div style="color:red; margin-bottom:10px; font-weight:bold;">⚠️ กลุ่มนี้กด "ออก" ไปแล้ว (ไม่ได้รับส่วนแบ่ง)</div>` : '';
+
             container.innerHTML = `
+                ${groupAlert}
                 <div style="display: flex; justify-content: space-between; font-size: 13px; color: #666; margin-bottom: 15px;">
                     <span>ยอดตั้งต้น: <b>${baseAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</b> บ.</span>
                     <span>เป้าหมาย: <b>${target}%</b> | ขยาย: <b>${expand}%</b> | รวม %: <b style="color:#d32f2f;">${totalTarget}%</b></span>
@@ -474,6 +545,47 @@
             `;
         }
 
+        // ================= ปุ่มออก / ยกเลิกออก (Toggle) =================
+        function toggleGroupOptOut(roundId, groupId) {
+            saveToUndoHistory();
+            const gState = roundInstances[roundId].groupData[groupId];
+            gState.isOptOut = !gState.isOptOut;
+            
+            const box = document.getElementById(groupId);
+            const btn = box.querySelector('.leave-btn');
+            if (gState.isOptOut) {
+                box.classList.add('opted-out-box');
+                btn.textContent = 'กลับเข้า';
+                btn.classList.add('active');
+            } else {
+                box.classList.remove('opted-out-box');
+                btn.textContent = 'ออก';
+                btn.classList.remove('active');
+            }
+            calculateAll(roundId);
+        }
+
+        function toggleSubItemOptOut(roundId, groupId, subId) {
+            saveToUndoHistory();
+            const gState = roundInstances[roundId].groupData[groupId];
+            const sState = gState.subItems.find(s => s.id === subId);
+            if(sState) sState.isOptOut = !sState.isOptOut;
+            
+            const box = document.getElementById(subId);
+            const btn = box.querySelector('.leave-btn');
+            if (sState.isOptOut) {
+                box.classList.add('opted-out-box');
+                btn.textContent = 'กลับเข้า';
+                btn.classList.add('active');
+            } else {
+                box.classList.remove('opted-out-box');
+                btn.textContent = 'ออก';
+                btn.classList.remove('active');
+            }
+            calculateSidePanel(roundId);
+        }
+
+        // ================= จัดการรายการ & รอบ (Rounds) =================
         function createItem(isFixed = false) {
             globalIdCounter++;
             const itemId = `item_${Date.now()}_${globalIdCounter}`;
@@ -711,16 +823,29 @@
                 roundInstances[newId].groupCount++;
                 const newGId = `${newId}_g_${roundInstances[newId].groupCount}`;
                 
-                const timeStr = Date.now() + Math.floor(Math.random()*1000);
-                const newSubs = g.subItems.map((s, idx) => ({ id: `${newGId}_s_${timeStr}_${idx}`, name: s.name, pct: s.pct }));
+                // ใช้ timestamp + random ป้องกัน ID ซ้ำซ้อนตอน copy
+                const timeStr = Date.now() + Math.floor(Math.random()*10000);
+                const newSubs = g.subItems.map((s, idx) => ({ 
+                    id: `${newGId}_s_${timeStr}_${idx}`, 
+                    name: s.name, 
+                    pct: s.pct,
+                    isOptOut: s.isOptOut || false
+                }));
                 
-                roundInstances[newId].groupData[newGId] = { amt: 0, pct: g.pct, expandPct: g.expandPct, subItems: newSubs };
+                roundInstances[newId].groupData[newGId] = { 
+                    amt: 0, pct: g.pct, expandPct: g.expandPct, isOptOut: g.isOptOut || false, subItems: newSubs 
+                };
+
+                const optOutClass = g.isOptOut ? 'opted-out-box' : '';
+                const btnText = g.isOptOut ? 'กลับเข้า' : 'ออก';
+                const btnClass = g.isOptOut ? 'leave-btn active' : 'leave-btn';
 
                 const html = `
-                    <div class="group-box" id="${newGId}">
+                    <div class="group-box ${optOutClass}" id="${newGId}">
                         <div class="group-header">
                             <input type="text" class="g-name" placeholder="ชื่อกลุ่ม" value="${gName.replace(/"/g, '&quot;')}" oninput="calculateAll('${newId}')">
                             <button class="remove-btn" onclick="removeGroup('${newId}', '${newGId}')">ลบ</button>
+                            <button class="${btnClass}" onclick="toggleGroupOptOut('${newId}', '${newGId}')">${btnText}</button>
                         </div>
                         <div class="input-group" style="margin-bottom:0;">
                             <label>ส่วนแบ่ง (%):</label>
@@ -776,6 +901,9 @@
             document.getElementById(`cost_${roundId}`).value = roundData.cost;
             document.getElementById(`limit_${roundId}`).value = roundData.limit;
 
+            const rIndex = getRoundIndex(roundId);
+            const showLeave = rIndex > 0 ? 'inline-block' : 'none';
+
             roundInstances[roundId].groupCount = roundData.groupCount || 0;
             roundInstances[roundId].subItemCount = roundData.subItemCount || 0;
 
@@ -784,14 +912,20 @@
                 roundInstances[roundId].groupData[gId] = {
                     amt: 0, pct: parseFloat(String(g.pct).replace(/,/g, '')) || 0,
                     expandPct: parseFloat(String(g.expandPct).replace(/,/g, '')) || 0,
+                    isOptOut: g.isOptOut || false,
                     subItems: g.subItems || []
                 };
 
+                const optOutClass = g.isOptOut ? 'opted-out-box' : '';
+                const btnText = g.isOptOut ? 'กลับเข้า' : 'ออก';
+                const btnClass = g.isOptOut ? 'leave-btn active' : 'leave-btn';
+
                 const gHtml = `
-                    <div class="group-box" id="${gId}">
+                    <div class="group-box ${optOutClass}" id="${gId}">
                         <div class="group-header">
                             <input type="text" class="g-name" placeholder="ชื่อกลุ่ม" value="${(g.name||'').replace(/"/g, '&quot;')}" oninput="calculateAll('${roundId}')">
                             <button class="remove-btn" onclick="removeGroup('${roundId}', '${gId}')">ลบ</button>
+                            <button class="${btnClass}" style="display:${showLeave};" onclick="toggleGroupOptOut('${roundId}', '${gId}')">${btnText}</button>
                         </div>
                         <div class="input-group" style="margin-bottom:0;">
                             <label>ส่วนแบ่ง (%):</label>
@@ -821,13 +955,15 @@
             const state = roundInstances[roundId];
             state.groupCount++;
             const groupId = `${roundId}_g_${state.groupCount}`;
+            const rIndex = getRoundIndex(roundId);
+            const showLeave = rIndex > 0 ? 'inline-block' : 'none';
             
             const tStr = Date.now() + Math.floor(Math.random()*1000);
             state.groupData[groupId] = {
-                amt: 0, pct: 0, expandPct: 0, 
+                amt: 0, pct: 0, expandPct: 0, isOptOut: false,
                 subItems: [ 
-                    { id: `${groupId}_s_${tStr}_1`, name: '', pct: '' }, 
-                    { id: `${groupId}_s_${tStr}_2`, name: '', pct: '' } 
+                    { id: `${groupId}_s_${tStr}_1`, name: '', pct: '', isOptOut: false }, 
+                    { id: `${groupId}_s_${tStr}_2`, name: '', pct: '', isOptOut: false } 
                 ]
             };
 
@@ -836,6 +972,7 @@
                     <div class="group-header">
                         <input type="text" class="g-name" placeholder="ชื่อกลุ่ม" oninput="calculateAll('${roundId}')">
                         <button class="remove-btn" onclick="removeGroup('${roundId}', '${groupId}')">ลบ</button>
+                        <button class="leave-btn" style="display:${showLeave};" onclick="toggleGroupOptOut('${roundId}', '${groupId}')">ออก</button>
                     </div>
                     <div class="input-group" style="margin-bottom:0;">
                         <label>ส่วนแบ่ง (%):</label>
@@ -871,10 +1008,11 @@
                 group.querySelector('.g-name').placeholder = `กลุ่มที่ ${num} / ชื่อ`;
                 const rBtn = group.querySelector('.remove-btn');
                 if (num <= 2) { if(rBtn) rBtn.style.display = 'none'; } 
-                else { if(rBtn) rBtn.style.display = 'inline'; }
+                else { if(rBtn) rBtn.style.display = 'inline-block'; }
             });
         }
 
+        // --- ระบบคำนวณ Pro-rata (หารเฉลี่ยกองกลาง) ฝั่งซ้าย ---
         function calculateAll(roundId) {
             const state = roundInstances[roundId];
             const income = getRawNumber(`income_${roundId}`);
@@ -888,39 +1026,66 @@
             document.getElementById(`netProfit_${roundId}`).textContent = netProfit.toLocaleString('th-TH', { maximumFractionDigits: 2 });
             document.getElementById(`valuePerPct_${roundId}`).textContent = vpp.toLocaleString('th-TH', { maximumFractionDigits: 2 });
 
-            let totalPct = 0;
+            let totalInputPct = 0;
+            let activeInputPct = 0;
+            
+            const groups = document.querySelectorAll(`#groupList_${roundId} .group-box`);
+            groups.forEach(group => {
+                const gId = group.id;
+                const gState = state.groupData[gId];
+                const pct = parseFloat(group.querySelector('.g-pct').value) || 0;
+                totalInputPct += pct;
+                if (!gState.isOptOut) activeInputPct += pct;
+            });
+
+            // ตัวคูณเพื่อเพิ่ม % ให้อัตโนมัติสำหรับกลุ่มที่ไม่ออก
+            const multiplier = activeInputPct > 0 ? (totalInputPct / activeInputPct) : 0;
+
             const select = document.getElementById(`select_${roundId}`);
             const currentSel = select.value;
             select.innerHTML = '<option value="">-- กรุณาเลือกกลุ่ม --</option>';
 
-            const groups = document.querySelectorAll(`#groupList_${roundId} .group-box`);
             groups.forEach(group => {
                 const gId = group.id;
+                const gState = state.groupData[gId];
                 const pct = parseFloat(group.querySelector('.g-pct').value) || 0;
                 const name = group.querySelector('.g-name').value || group.querySelector('.g-name').placeholder;
                 
-                totalPct += pct;
-                const amt = vpp * pct;
-                group.querySelector('.g-amt').textContent = amt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+                let effectivePct = 0;
+                if (!gState.isOptOut) {
+                    effectivePct = pct * multiplier;
+                }
                 
-                if(!state.groupData[gId]) state.groupData[gId] = { amt:0, pct:0, expandPct:0, subItems:[] };
-                state.groupData[gId].amt = amt;
-                state.groupData[gId].pct = pct; 
+                const amt = vpp * effectivePct;
                 
+                let pctDisplay = '';
+                if (gState.isOptOut) {
+                    pctDisplay = `<br><span style="color:red;font-size:11px;">(ออก - ไม่รับส่วนแบ่ง)</span>`;
+                } else if (multiplier > 1 && pct > 0) {
+                    pctDisplay = `<br><span style="color:var(--secondary-color);font-size:11px;">(กองกลางเพิ่มให้เป็น ${effectivePct.toFixed(2)}%)</span>`;
+                }
+
+                group.querySelector('.g-amt').innerHTML = amt.toLocaleString('th-TH', { maximumFractionDigits: 2 }) + ' บาท' + pctDisplay;
+                
+                gState.amt = amt;
+                gState.pct = pct; 
+                gState.effectivePct = effectivePct;
+                
+                const optOutText = gState.isOptOut ? ' (ออก)' : '';
                 const opt = document.createElement('option');
-                opt.value = gId; opt.textContent = name;
+                opt.value = gId; opt.textContent = name + optOutText;
                 select.appendChild(opt);
             });
 
             if (currentSel && state.groupData[currentSel]) select.value = currentSel;
 
             const status = document.getElementById(`trackerStatus_${roundId}`);
-            if (totalPct > limit) {
-                status.innerHTML = `<b style="color:red;">⚠️ รวมแล้ว ${totalPct}% (เกิน ${limit}%)!</b>`;
+            if (totalInputPct > limit) {
+                status.innerHTML = `<b style="color:red;">⚠️ รวมการกรอกแล้ว ${totalInputPct}% (เกิน ${limit}%)!</b>`;
                 status.parentElement.style.borderColor = "red";
             } else {
-                const rem = Math.round((limit - totalPct)*100)/100;
-                status.innerHTML = `<b style="color:green;">✅ รวมแล้ว: ${totalPct}% (เหลือ: ${rem}%)</b>`;
+                const rem = Math.round((limit - totalInputPct)*100)/100;
+                status.innerHTML = `<b style="color:green;">✅ รวมการกรอกแล้ว: ${totalInputPct}% (เหลือ: ${rem}%)</b>`;
                 status.parentElement.style.borderColor = "var(--secondary-color)";
             }
 
@@ -935,6 +1100,8 @@
             const state = roundInstances[roundId];
             const selId = document.getElementById(`select_${roundId}`).value;
             const container = document.getElementById(`subItemList_${roundId}`);
+            const rIndex = getRoundIndex(roundId);
+            const showLeave = rIndex > 0 ? 'inline-block' : 'none';
             
             const targetInput = document.getElementById(`target_${roundId}`);
             const expandInput = document.getElementById(`expand_${roundId}`);
@@ -955,11 +1122,16 @@
                 let removeHtml = '';
                 if (index >= 2) removeHtml = `<button class="remove-btn" onclick="removeSubItem('${roundId}', '${selId}', '${sub.id}')">ลบ</button>`;
 
+                const optOutClass = sub.isOptOut ? 'opted-out-box' : '';
+                const btnText = sub.isOptOut ? 'กลับเข้า' : 'ออก';
+                const btnClass = sub.isOptOut ? 'leave-btn active' : 'leave-btn';
+
                 const html = `
-                    <div class="sub-item-box" id="${sub.id}">
+                    <div class="sub-item-box ${optOutClass}" id="${sub.id}">
                         <div class="sub-item-header">
                             <input type="text" placeholder="ชื่อผู้รับ/รายละเอียด" value="${(sub.name||'').replace(/"/g, '&quot;')}" oninput="updateSubItemData('${roundId}', '${selId}', '${sub.id}', 'name', this.value)">
                             ${removeHtml}
+                            <button class="${btnClass}" style="display:${showLeave};" onclick="toggleSubItemOptOut('${roundId}', '${selId}', '${sub.id}')">${btnText}</button>
                         </div>
                         <div class="sub-item-row">
                             <input type="text" inputmode="decimal" class="s-pct" placeholder="ใส่ %" value="${sub.pct}" onkeydown="allowOnlyNumbers(event)" oninput="updateSubItemData('${roundId}', '${selId}', '${sub.id}', 'pct', this.value); formatPercentInput(this, 'side', '${roundId}');">
@@ -995,7 +1167,7 @@
             state.subItemCount++;
             const subId = `${selId}_s_${Date.now()}_${state.subItemCount}`;
 
-            state.groupData[selId].subItems.push({ id: subId, name: '', pct: '' });
+            state.groupData[selId].subItems.push({ id: subId, name: '', pct: '', isOptOut: false });
             renderSidePanel(roundId); 
         }
 
@@ -1006,16 +1178,20 @@
             renderSidePanel(roundId);
         }
 
+        // --- ระบบคำนวณ Pro-rata (หารเฉลี่ยกองกลาง) ฝั่งขวา ---
         function calculateSidePanel(roundId) {
             const state = roundInstances[roundId];
             const selId = document.getElementById(`select_${roundId}`).value;
             
             let baseAmt = 0; let target = 0; let expand = 0;
+            let groupIsOptOut = false;
             
             if (selId && state.groupData[selId]) {
-                baseAmt = state.groupData[selId].amt;
-                target = state.groupData[selId].pct; 
-                expand = state.groupData[selId].expandPct || 0;
+                const gd = state.groupData[selId];
+                groupIsOptOut = gd.isOptOut;
+                baseAmt = gd.amt;
+                target = gd.pct; 
+                expand = gd.expandPct || 0;
             }
 
             const totalTarget = target + expand;
@@ -1030,23 +1206,52 @@
             const calcAmt = onePercentValue * totalTarget; 
             document.getElementById(`calcAmt_${roundId}`).textContent = calcAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
 
-            let totPct = 0; let totAmt = 0;
+            let totalInputSubPct = 0;
+            let activeInputSubPct = 0;
 
             const subs = document.querySelectorAll(`#subItemList_${roundId} .sub-item-box`);
             subs.forEach(sub => {
+                const subId = sub.id;
+                const subState = state.groupData[selId].subItems.find(s => s.id === subId);
                 const p = parseFloat(sub.querySelector('.s-pct').value) || 0;
-                totPct += p;
-                let a = onePercentValue * p;
+                totalInputSubPct += p;
+                if (!subState.isOptOut) activeInputSubPct += p;
+            });
+
+            // ตัวคูณสำหรับหารเฉลี่ย
+            const subMultiplier = activeInputSubPct > 0 ? (totalInputSubPct / activeInputSubPct) : 0;
+
+            let totAmt = 0;
+            subs.forEach(sub => {
+                const subId = sub.id;
+                const subState = state.groupData[selId].subItems.find(s => s.id === subId);
+                const p = parseFloat(sub.querySelector('.s-pct').value) || 0;
+                
+                let effectiveP = 0;
+                if (!subState.isOptOut && !groupIsOptOut) {
+                    effectiveP = p * subMultiplier;
+                }
+                
+                let a = onePercentValue * effectiveP;
                 totAmt += a;
-                sub.querySelector('.s-amt').textContent = a.toLocaleString('th-TH', { maximumFractionDigits: 2 }) + ' บาท';
+
+                let displayHtml = a.toLocaleString('th-TH', { maximumFractionDigits: 2 }) + ' บาท';
+                
+                if (groupIsOptOut || subState.isOptOut) {
+                    displayHtml = `<span style="color:red; text-decoration:line-through;">${displayHtml}</span><br><span style="font-size:11px; color:red;">(ออก)</span>`;
+                } else if (subMultiplier > 1 && p > 0) {
+                    displayHtml += `<br><span style="font-size:11px; color:var(--secondary-color);">*ปรับเพิ่มเป็น ${effectiveP.toFixed(2)}%</span>`;
+                }
+                
+                sub.querySelector('.s-amt').innerHTML = displayHtml;
             });
 
             const alertSp = document.getElementById(`alert_${roundId}`);
-            const rTot = Math.round(totPct*100)/100;
+            const rTot = Math.round(totalInputSubPct*100)/100;
             const rTar = Math.round(totalTarget*100)/100; 
 
-            if (rTot > rTar) alertSp.innerHTML = `<span style="color:red;">(⚠️ เกิน ${(rTot-rTar).toFixed(2)}%)</span>`;
-            else if (rTot < rTar) alertSp.innerHTML = `<span style="color:#FF9800;">(ขาด ${(rTar-rTot).toFixed(2)}%)</span>`;
+            if (rTot > rTar) alertSp.innerHTML = `<span style="color:red;">(⚠️ รวมการกรอกเกิน ${(rTot-rTar).toFixed(2)}%)</span>`;
+            else if (rTot < rTar) alertSp.innerHTML = `<span style="color:#FF9800;">(ขาดอีก ${(rTar-rTot).toFixed(2)}%)</span>`;
             else alertSp.innerHTML = `<span style="color:green;">(ครบ)</span>`;
 
             document.getElementById(`totSubPct_${roundId}`).textContent = rTot;
