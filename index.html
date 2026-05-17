@@ -47,6 +47,11 @@
         .view-panel.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* Input ชื่องาน */
+        .project-name-input { font-size: 22px; font-weight: bold; color: var(--primary-color); border: none; border-bottom: 2px dashed #ccc; background: transparent; width: 100%; margin-bottom: 15px; padding-bottom: 5px; outline: none; font-family: inherit; transition: 0.3s; }
+        .project-name-input:focus { border-bottom-color: var(--primary-color); }
+        .project-name-input::placeholder { color: #bbdefb; }
+
         .round-tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; overflow-x: auto;}
         .round-tab { padding: 6px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; background-color: #e0e0e0; border: 1px solid #ccc; color: #555; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: 0.2s;}
         .round-tab.active { background-color: var(--secondary-color); color: white; border-color: var(--secondary-color); }
@@ -62,7 +67,6 @@
         .inner-side { flex: 4; }
 
         h2, h3 { margin: 0 0 15px 0; text-align: center; }
-        h2 { color: var(--primary-color); font-size: 22px;}
         h3 { color: var(--secondary-color); border-bottom: 2px solid #fff3e0; padding-bottom: 8px; font-size: 18px;}
 
         .main-config { background-color: #e3f2fd; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid var(--primary-color); }
@@ -72,7 +76,6 @@
         .input-group label { font-weight: bold; display: block; margin-bottom: 4px; font-size: 13px; color: #444; }
 
         input[type="text"], input[inputmode="decimal"], select { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; font-size: 14px; }
-        input::placeholder { color: #999; }
         input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 
         .summary-box { background-color: #fff; padding: 10px; border-radius: 6px; margin-top: 10px; border: 1px dashed #2196F3; }
@@ -91,7 +94,6 @@
         
         .remove-btn { background-color: #ff4c4c; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
         
-        /* สไตล์ปุ่มออกและกล่องสีเทา */
         .leave-btn { background-color: #757575; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
         .leave-btn:hover { background-color: #616161; }
         .leave-btn.active { background-color: #FF9800; }
@@ -110,7 +112,6 @@
         .sub-amount-display { font-weight: bold; color: #1976D2; font-size: 13px; text-align: right;}
 
         .summary-card { border: 1px solid #e0e0e0; border-radius: 10px; padding: 20px; margin-bottom: 30px; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .summary-card h2.view-title { color: var(--primary-color) !important; margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px; text-align: left; }
         .summary-round { margin-bottom: 20px; padding: 15px 0; border-bottom: 1px dashed #ccc; }
         .summary-round:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
         .summary-round-title { color: var(--secondary-color); margin-top: 0; margin-bottom: 15px; font-size: 16px; text-align: left; }
@@ -127,6 +128,10 @@
         .btn-undo[disabled] { background-color: #cfd8dc; color: #999; cursor: not-allowed; }
         .btn-clear { background-color: #f44336; }
         .btn-clear:hover { background-color: #da190b; }
+
+        /* ปุ่มแชร์ LINE */
+        .btn-line { background-color: #00B900; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+        .btn-line:hover { background-color: #009900; }
 
         footer.watermark { position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--card-bg); color: #777; text-align: center; padding: 12px 0; border-top: 1px solid var(--border-color); font-size: 12px; font-weight: bold; z-index: 100; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); }
         #visitor_counter_display { color: var(--primary-color); margin-left: 10px; font-size: 14px; }
@@ -243,7 +248,11 @@
                 const itemId = tab.id.replace('menu_', '');
                 if(!itemInstances[itemId]) return;
                 const itemInst = itemInstances[itemId];
-                const title = document.querySelector(`#view_${itemId} .view-title`).innerText;
+                
+                // ดึงชื่องานจาก Input
+                const projectNameInput = document.getElementById(`projectName_${itemId}`);
+                const projectName = projectNameInput ? projectNameInput.value : '';
+                const title = projectName || tab.dataset.baseTitle;
                 
                 let roundsData = [];
                 itemInst.rounds.forEach(roundId => {
@@ -297,7 +306,7 @@
                 });
 
                 state.items.push({
-                    id: itemId, title: title, roundCounter: itemInst.roundCounter, rounds: roundsData
+                    id: itemId, projectName: projectName, title: title, roundCounter: itemInst.roundCounter, rounds: roundsData
                 });
             });
 
@@ -369,6 +378,68 @@
             if(tabId === 'summary') renderSummaryPage();
         }
 
+        // ================= แชร์ไปยัง LINE =================
+        function shareToLine(itemIndex) {
+            const item = window.summaryState[itemIndex];
+            const pName = item.projectName ? item.projectName : item.title;
+            let text = `📊 สรุปงาน: ${pName}\n\n`;
+            
+            item.rounds.forEach((round, rIndex) => {
+                const incomeNum = parseFloat(round.income.replace(/,/g, '')) || 0;
+                const costNum = parseFloat(round.cost.replace(/,/g, '')) || 0;
+                const netProfit = incomeNum - costNum;
+                
+                text += `[รอบที่ ${rIndex + 1}]\n`;
+                text += `💰 ยอดจบ: ${incomeNum.toLocaleString('th-TH')} บ.\n`;
+                text += `📉 ทุนรวม: ${costNum.toLocaleString('th-TH')} บ.\n`;
+                text += `💵 กำไรสุทธิ: ${netProfit.toLocaleString('th-TH')} บ.\n`;
+                
+                const selGroup = round.groups.find(g => g.id === round.selectedGroup);
+                if (selGroup) {
+                    text += `\n>> แจกแจงกลุ่ม: ${selGroup.name || 'ไม่ระบุ'}\n`;
+                    
+                    const limitNum = parseFloat(round.limit.replace(/,/g, '')) || 0;
+                    const vpp = limitNum > 0 ? netProfit / limitNum : 0;
+                    const target = parseFloat(selGroup.pct) || 0;
+                    const expand = parseFloat(selGroup.expandPct) || 0;
+                    const totalTarget = target + expand;
+                    const baseAmt = selGroup.isOptOut ? 0 : (vpp * (selGroup.effectivePct || target));
+                    
+                    let onePercentValue = 0;
+                    if (totalTarget > 0) onePercentValue = baseAmt / totalTarget;
+
+                    let activeInputSubPct = 0;
+                    let totalInputSubPct = 0;
+                    (selGroup.subItems || []).forEach(sub => {
+                        const p = parseFloat(sub.pct) || 0;
+                        totalInputSubPct += p;
+                        if(!sub.isOptOut) activeInputSubPct += p;
+                    });
+                    const subMultiplier = activeInputSubPct > 0 ? (totalInputSubPct / activeInputSubPct) : 0;
+
+                    (selGroup.subItems || []).forEach(sub => {
+                        const p = parseFloat(sub.pct) || 0;
+                        let effectiveP = (!sub.isOptOut && !selGroup.isOptOut) ? p * subMultiplier : 0;
+                        const a = onePercentValue * effectiveP;
+                        const safeName = sub.name || 'ไม่ระบุชื่อ';
+                        
+                        if (sub.isOptOut || selGroup.isOptOut) {
+                            text += `- ${safeName}: (ออก) 0 บ.\n`;
+                        } else {
+                            text += `- ${safeName} (${p}%): ${a.toLocaleString('th-TH', { maximumFractionDigits: 2 })} บ.\n`;
+                        }
+                    });
+                } else {
+                    text += `\n* ยังไม่ได้เลือกกลุ่มคำนวณ\n`;
+                }
+                text += `----------------------\n`;
+            });
+
+            // สร้าง LINE Protocol
+            const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(text)}`;
+            window.open(lineUrl, '_blank');
+        }
+
         // ================= หน้าสรุปภาพรวม =================
         function renderSummaryPage() {
             const summaryContainer = document.getElementById('view_summary');
@@ -389,9 +460,16 @@
             window.summaryState = state.items; 
 
             state.items.forEach((item, itemIndex) => {
+                const dispTitle = item.projectName ? item.projectName : item.title;
                 let html = `
                     <div class="summary-card">
-                        <h2 class="view-title">${item.title}</h2>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 15px;">
+                            <h2 style="color: var(--primary-color); margin: 0; padding: 0; font-size: 20px;">${dispTitle}</h2>
+                            <button class="btn-line" onclick="shareToLine(${itemIndex})">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.114.281.072.717.035.942-.054.341-.35 2.118-.426 2.553-.095.539.421.734.78.435.344-.286 3.992-3.292 5.485-5.061C21.464 16.512 24 13.626 24 10.304z"/></svg>
+                                แชร์ลง LINE
+                            </button>
+                        </div>
                 `;
                 
                 item.rounds.forEach((round, rIndex) => {
@@ -586,6 +664,13 @@
         }
 
         // ================= จัดการรายการ & รอบ (Rounds) =================
+        function updateItemTitle(itemId) {
+            const val = document.getElementById(`projectName_${itemId}`).value;
+            const tab = document.getElementById(`menu_${itemId}`);
+            const baseText = tab.dataset.baseTitle; 
+            tab.querySelector('.menu-title').textContent = val ? val : baseText;
+        }
+
         function createItem(isFixed = false) {
             globalIdCounter++;
             const itemId = `item_${Date.now()}_${globalIdCounter}`;
@@ -602,7 +687,8 @@
 
             const viewHTML = `
                 <div class="view-panel calc-view" id="view_${itemId}">
-                    <h2 class="view-title" style="color: var(--primary-color);"></h2>
+                    <input type="text" class="project-name-input" id="projectName_${itemId}" placeholder="กรอกชื่องาน (เช่น งานตึก A)..." oninput="updateItemTitle('${itemId}')">
+                    
                     <div class="round-tabs" id="round_tabs_${itemId}">
                         <button class="add-round-btn" onclick="addRound('${itemId}')">+ เพิ่มรอบ</button>
                     </div>
@@ -634,15 +720,17 @@
             const tabs = document.querySelectorAll('.menu-item.calc-tab');
             tabs.forEach((tab, index) => {
                 const num = index + 1;
-                const titleText = `รายการ ${num}`;
-                tab.querySelector('.menu-title').textContent = titleText;
+                const baseText = `รายการ ${num}`;
+                tab.dataset.baseTitle = baseText;
+                
+                const itemId = tab.id.replace('menu_', '');
+                const nameInput = document.getElementById(`projectName_${itemId}`);
+                
+                tab.querySelector('.menu-title').textContent = (nameInput && nameInput.value) ? nameInput.value : baseText;
                 
                 const delIcon = tab.querySelector('.delete-icon');
                 if (num === 1) { if(delIcon) delIcon.style.display = 'none'; } 
                 else { if(delIcon) delIcon.style.display = 'inline'; }
-
-                const itemId = tab.id.replace('menu_', '');
-                document.querySelector(`#view_${itemId} .view-title`).textContent = titleText;
             });
         }
 
@@ -823,7 +911,6 @@
                 roundInstances[newId].groupCount++;
                 const newGId = `${newId}_g_${roundInstances[newId].groupCount}`;
                 
-                // ใช้ timestamp + random ป้องกัน ID ซ้ำซ้อนตอน copy
                 const timeStr = Date.now() + Math.floor(Math.random()*10000);
                 const newSubs = g.subItems.map((s, idx) => ({ 
                     id: `${newGId}_s_${timeStr}_${idx}`, 
@@ -882,7 +969,7 @@
 
             const viewHTML = `
                 <div class="view-panel calc-view" id="view_${itemId}">
-                    <h2 class="view-title" style="color: var(--primary-color);">${itemData.title}</h2>
+                    <input type="text" class="project-name-input" id="projectName_${itemId}" value="${itemData.projectName || ''}" placeholder="กรอกชื่องาน (เช่น งานตึก A)..." oninput="updateItemTitle('${itemId}')">
                     <div class="round-tabs" id="round_tabs_${itemId}">
                         <button class="add-round-btn" onclick="addRound('${itemId}')">+ เพิ่มรอบ</button>
                     </div>
@@ -890,10 +977,15 @@
                 </div>
             `;
             document.getElementById('main-content').insertAdjacentHTML('beforeend', viewHTML);
+            
+            // set base title right away
+            document.getElementById(`menu_${itemId}`).dataset.baseTitle = `รายการ ${isFirst ? 1 : document.querySelectorAll('.menu-item.calc-tab').length}`;
 
             itemData.rounds.forEach((rData, rIdx) => {
                 addRound(itemId, rIdx === 0, rData);
             });
+            
+            updateItemTitle(itemId); // update title based on restored data
         }
 
         function restoreRound(roundId, roundData) {
@@ -1012,7 +1104,6 @@
             });
         }
 
-        // --- ระบบคำนวณ Pro-rata (หารเฉลี่ยกองกลาง) ฝั่งซ้าย ---
         function calculateAll(roundId) {
             const state = roundInstances[roundId];
             const income = getRawNumber(`income_${roundId}`);
@@ -1038,7 +1129,6 @@
                 if (!gState.isOptOut) activeInputPct += pct;
             });
 
-            // ตัวคูณเพื่อเพิ่ม % ให้อัตโนมัติสำหรับกลุ่มที่ไม่ออก
             const multiplier = activeInputPct > 0 ? (totalInputPct / activeInputPct) : 0;
 
             const select = document.getElementById(`select_${roundId}`);
@@ -1178,7 +1268,6 @@
             renderSidePanel(roundId);
         }
 
-        // --- ระบบคำนวณ Pro-rata (หารเฉลี่ยกองกลาง) ฝั่งขวา ---
         function calculateSidePanel(roundId) {
             const state = roundInstances[roundId];
             const selId = document.getElementById(`select_${roundId}`).value;
@@ -1218,7 +1307,6 @@
                 if (!subState.isOptOut) activeInputSubPct += p;
             });
 
-            // ตัวคูณสำหรับหารเฉลี่ย
             const subMultiplier = activeInputSubPct > 0 ? (totalInputSubPct / activeInputSubPct) : 0;
 
             let totAmt = 0;
