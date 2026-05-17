@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบคำนวณส่วนแบ่งกำไร</title>
+    
+    <link rel="icon" type="image/png" href="icon.png">
+
     <style>
         :root {
             --primary-color: #2196F3;
@@ -19,82 +22,42 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 15px;
+            padding: 15px 15px 60px 15px; 
             display: flex;
             justify-content: center;
-            
-            /* ป้องกันการลากคลุมข้อความ (Highlight) */
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
         }
 
-        /* อนุญาตให้ลากคลุมเฉพาะในช่องกรอกข้อมูล เพื่อให้ใช้งานได้ปกติ */
-        input, select {
-            -webkit-user-select: text;
-            -moz-user-select: text;
-            -ms-user-select: text;
-            user-select: text;
-        }
+        input, select { -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text; }
 
-        .layout-wrapper {
-            display: flex;
-            gap: 15px;
-            width: 100%;
-            max-width: 1300px;
-            align-items: flex-start;
-        }
+        .layout-wrapper { display: flex; gap: 15px; width: 100%; max-width: 1300px; align-items: flex-start; }
 
-        .sidebar {
-            width: 220px;
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-            position: sticky;
-            top: 15px;
-            flex-shrink: 0;
-        }
-
+        .sidebar { width: 220px; background-color: var(--card-bg); padding: 15px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); position: sticky; top: 15px; flex-shrink: 0; }
         .sidebar-menu { display: flex; flex-direction: column; gap: 8px; }
-
-        .menu-item {
-            padding: 12px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            background-color: #f9f9f9;
-            border: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            color: #555;
-            transition: all 0.2s;
-        }
-
+        .menu-item { padding: 12px 15px; border-radius: 6px; cursor: pointer; background-color: #f9f9f9; border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: #555; transition: all 0.2s; }
         .menu-item:hover:not(.active) { background-color: #f0f0f0; }
         .menu-item.active { background-color: #e3f2fd; border-color: var(--primary-color); color: var(--primary-color); }
-
-        .delete-icon {
-            color: #ff4c4c; font-size: 14px; cursor: pointer; padding: 2px 6px; border-radius: 4px; display: none;
-        }
+        .delete-icon { color: #ff4c4c; font-size: 14px; cursor: pointer; padding: 2px 6px; border-radius: 4px; display: none; }
         .delete-icon:hover { background-color: #ffe6e6; }
-
-        button.add-item-btn {
-            background-color: var(--primary-color); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: bold; margin-top: 15px;
-        }
+        button.add-item-btn { background-color: var(--primary-color); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: bold; margin-top: 15px; }
         button.add-item-btn:hover { background-color: #1e88e5; }
 
-        .main-content {
-            flex: 1; background-color: var(--card-bg); padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); min-height: 600px;
-        }
-
+        .main-content { flex: 1; background-color: var(--card-bg); padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); min-height: 600px; }
         .view-panel { display: none; animation: fadeIn 0.3s; }
         .view-panel.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .inner-layout { display: flex; gap: 15px; margin-top: 15px; align-items: flex-start;}
+        .round-tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; overflow-x: auto;}
+        .round-tab { padding: 6px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; background-color: #e0e0e0; border: 1px solid #ccc; color: #555; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: 0.2s;}
+        .round-tab.active { background-color: var(--secondary-color); color: white; border-color: var(--secondary-color); }
+        .del-round { background: rgba(0,0,0,0.15); color: white; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; justify-content: center; align-items: center; font-size: 10px; cursor: pointer;}
+        .del-round:hover { background: rgba(0,0,0,0.4); }
+        .add-round-btn { background: #4CAF50; color: white; border: none; border-radius: 20px; padding: 6px 15px; cursor: pointer; font-weight: bold; font-size: 14px;}
+        
+        .round-view { display: none; }
+        .round-view.active { display: block; animation: fadeIn 0.3s; }
+
+        .inner-layout { display: flex; gap: 15px; align-items: flex-start;}
         .inner-main { flex: 6; }
         .inner-side { flex: 4; }
 
@@ -108,7 +71,7 @@
         .input-group { margin-bottom: 10px; }
         .input-group label { font-weight: bold; display: block; margin-bottom: 4px; font-size: 13px; color: #444; }
 
-        input[type="text"], select { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        input[type="text"], input[inputmode="decimal"], select { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; font-size: 14px; }
         input::placeholder { color: #999; }
         input:focus, select:focus { outline: none; border-color: var(--primary-color); }
 
@@ -134,19 +97,15 @@
         .sub-item-row input { width: 45%; }
         .sub-amount-display { font-weight: bold; color: #1976D2; font-size: 13px;}
 
-        .summary-item-wrapper {
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 30px;
-            background-color: #f8f9fa;
-        }
-        .summary-item-wrapper h2.view-title {
-            color: #555 !important;
-            margin-top: 0;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 10px;
-        }
+        /* สไตล์หน้าสรุปแบบ Report */
+        .summary-card { border: 1px solid #e0e0e0; border-radius: 10px; padding: 20px; margin-bottom: 30px; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .summary-card h2.view-title { color: var(--primary-color) !important; margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px; text-align: left; }
+        .summary-round { margin-bottom: 20px; padding: 15px 0; border-bottom: 1px dashed #ccc; }
+        .summary-round:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .summary-round-title { color: var(--secondary-color); margin-top: 0; margin-bottom: 15px; font-size: 16px; text-align: left; }
+        .summary-stats { display: flex; gap: 20px; font-size: 13px; margin-bottom: 15px; flex-wrap: wrap; background: #f4f7f6; padding: 12px; border-radius: 6px; }
+        .summary-breakdown { background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #eee; }
+        .breakdown-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
 
         .action-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 15px; }
         .action-btns button { padding: 8px 0; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center;}
@@ -157,6 +116,9 @@
         .btn-undo[disabled] { background-color: #cfd8dc; color: #999; cursor: not-allowed; }
         .btn-clear { background-color: #f44336; }
         .btn-clear:hover { background-color: #da190b; }
+
+        footer.watermark { position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--card-bg); color: #777; text-align: center; padding: 12px 0; border-top: 1px solid var(--border-color); font-size: 12px; font-weight: bold; z-index: 100; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); }
+        #visitor_counter_display { color: var(--primary-color); margin-left: 10px; font-size: 14px; }
 
         @media (max-width: 900px) {
             .layout-wrapper { flex-direction: column; }
@@ -187,40 +149,31 @@
         </div>
     </div>
 
-    <script>
-        // ================= สคริปต์ป้องกันการคัดลอก/ดูโค้ด =================
-        // บล็อกการคลิกขวา
-        document.addEventListener('contextmenu', event => event.preventDefault());
+    <footer class="watermark">
+        Money Heist V.1 - ยอดคนเข้าใช้งาน:<span id="visitor_counter_display">0</span>
+    </footer>
 
-        // บล็อกคีย์ลัดต่างๆ (F12, Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+Shift+I/J/C)
+    <script>
+        document.addEventListener('contextmenu', event => event.preventDefault());
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'F12') {
-                e.preventDefault();
-                return false;
-            }
-            if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key)) {
-                e.preventDefault();
-                return false;
-            }
-            if (e.ctrlKey && ['u', 'U', 's', 'S', 'p', 'P'].includes(e.key)) {
-                e.preventDefault();
-                return false;
-            }
+            if (e.key === 'F12') { e.preventDefault(); return false; }
+            if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key)) { e.preventDefault(); return false; }
+            if (e.ctrlKey && ['u', 'U', 's', 'S', 'p', 'P'].includes(e.key)) { e.preventDefault(); return false; }
         });
-        // ==========================================================
 
         let itemInstances = {}; 
+        let roundInstances = {}; 
         let globalIdCounter = 0;
         let undoHistory = []; 
 
         function allowOnlyNumbers(event) {
             const allowedKeys = ['Backspace', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'Delete', 'Home', 'End'];
             if (allowedKeys.includes(event.key)) return;
-            if (event.ctrlKey || event.metaKey) return; // ยอมให้ Ctrl+C, Ctrl+V ในช่องกรอกได้
+            if (event.ctrlKey || event.metaKey) return; 
             if (!/^[0-9.]$/.test(event.key)) event.preventDefault();
         }
 
-        function formatAndCalculate(inputElement, itemId) {
+        function formatAndCalculate(inputElement, roundId) {
             let val = inputElement.value.replace(/[^0-9.]/g, ''); 
             const parts = val.split('.');
             if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
@@ -231,31 +184,31 @@
             } else {
                 inputElement.value = '';
             }
-            calculateAll(itemId);
+            calculateAll(roundId);
         }
 
-        function formatPercentInput(inputElement, targetAction, itemId) {
+        function formatPercentInput(inputElement, targetAction, roundId) {
             let val = inputElement.value.replace(/[^0-9.]/g, '');
             const parts = val.split('.');
             if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
             inputElement.value = val;
 
-            if (targetAction === 'all') calculateAll(itemId);
-            if (targetAction === 'side') calculateSidePanel(itemId);
+            if (targetAction === 'all') calculateAll(roundId);
+            if (targetAction === 'side') calculateSidePanel(roundId);
         }
 
-        function formatExpandInput(inputElement, itemId) {
+        function formatExpandInput(inputElement, roundId) {
             let val = inputElement.value.replace(/[^0-9.]/g, '');
             const parts = val.split('.');
             if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
             inputElement.value = val;
 
-            const state = itemInstances[itemId];
-            const selId = document.getElementById(`select_${itemId}`).value;
+            const state = roundInstances[roundId];
+            const selId = document.getElementById(`select_${roundId}`).value;
             if (selId && state.groupData[selId]) {
                 state.groupData[selId].expandPct = parseFloat(val) || 0;
             }
-            calculateSidePanel(itemId);
+            calculateSidePanel(roundId);
         }
 
         function getRawNumber(elementId) {
@@ -264,47 +217,68 @@
             return parseFloat(el.value.replace(/,/g, '')) || 0;
         }
 
-        // ================= เก็บข้อมูล / ล้างข้อมูล (Local Storage) =================
         function getCurrentState() {
-            let state = {
-                globalIdCounter: globalIdCounter,
-                items: []
-            };
+            let state = { globalIdCounter: globalIdCounter, items: [] };
             
             document.querySelectorAll('.menu-item.calc-tab').forEach(tab => {
                 const itemId = tab.id.replace('menu_', '');
                 if(!itemInstances[itemId]) return;
-                const inst = itemInstances[itemId];
-                
-                const income = document.getElementById(`income_${itemId}`).value;
-                const cost = document.getElementById(`cost_${itemId}`).value;
-                const limit = document.getElementById(`limit_${itemId}`).value;
+                const itemInst = itemInstances[itemId];
                 const title = document.querySelector(`#view_${itemId} .view-title`).innerText;
-                const selectedGroup = document.getElementById(`select_${itemId}`).value;
                 
-                let groups = [];
-                document.querySelectorAll(`#groupList_${itemId} .group-box`).forEach(gb => {
-                    const gId = gb.id;
-                    const name = gb.querySelector('.g-name').value;
-                    const pct = gb.querySelector('.g-pct').value;
-                    const gd = inst.groupData[gId] || { subItems: [], expandPct: 0 };
+                let roundsData = [];
+                itemInst.rounds.forEach(roundId => {
+                    const rInst = roundInstances[roundId];
+
+                    const activeSel = document.getElementById(`select_${roundId}`);
+                    if (activeSel) {
+                        const selId = activeSel.value;
+                        if (selId && rInst.groupData[selId]) {
+                            const subsDOM = document.querySelectorAll(`#subItemList_${roundId} .sub-item-box`);
+                            if (subsDOM.length > 0) {
+                                rInst.groupData[selId].subItems = Array.from(subsDOM).map(sub => {
+                                    return {
+                                        id: sub.id,
+                                        name: sub.querySelector('.sub-item-header input').value,
+                                        pct: sub.querySelector('.s-pct').value
+                                    };
+                                });
+                            }
+                        }
+                    }
+
+                    const income = document.getElementById(`income_${roundId}`).value;
+                    const cost = document.getElementById(`cost_${roundId}`).value;
+                    const limit = document.getElementById(`limit_${roundId}`).value;
+                    const selectedGroup = document.getElementById(`select_${roundId}`).value;
                     
-                    groups.push({
-                        id: gId, name: name, pct: pct, expandPct: gd.expandPct,
-                        subItems: JSON.parse(JSON.stringify(gd.subItems)) 
+                    let groups = [];
+                    document.querySelectorAll(`#groupList_${roundId} .group-box`).forEach(gb => {
+                        const gId = gb.id;
+                        const name = gb.querySelector('.g-name').value;
+                        const pct = gb.querySelector('.g-pct').value;
+                        const gd = rInst.groupData[gId] || { subItems: [], expandPct: 0 };
+                        
+                        groups.push({
+                            id: gId, name: name, pct: pct, expandPct: gd.expandPct,
+                            subItems: JSON.parse(JSON.stringify(gd.subItems)) 
+                        });
+                    });
+
+                    roundsData.push({
+                        id: roundId, income, cost, limit, selectedGroup,
+                        groupCount: rInst.groupCount, subItemCount: rInst.subItemCount,
+                        groups: groups
                     });
                 });
 
                 state.items.push({
-                    id: itemId, title: title, income: income, cost: cost, limit: limit,
-                    groupCount: inst.groupCount, subItemCount: inst.subItemCount,
-                    groups: groups, selectedGroup: selectedGroup
+                    id: itemId, title: title, roundCounter: itemInst.roundCounter, rounds: roundsData
                 });
             });
 
             const activeTab = document.querySelector('.menu-item.active');
             state.activeTabId = activeTab ? activeTab.id.replace('menu_', '') : 'summary';
-            
             return state;
         }
 
@@ -322,7 +296,7 @@
             document.querySelectorAll('.calc-tab').forEach(el => el.remove());
             document.querySelectorAll('.calc-view').forEach(el => el.remove());
             itemInstances = {};
-            
+            roundInstances = {};
             globalIdCounter = prevState.globalIdCounter;
             
             prevState.items.forEach((item, index) => {
@@ -336,14 +310,11 @@
             const state = getCurrentState();
             localStorage.setItem('profitShareState', JSON.stringify(state));
             alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
-            
-            if(document.getElementById('menu_summary').classList.contains('active')) {
-                renderSummaryPage();
-            }
+            if(document.getElementById('menu_summary').classList.contains('active')) renderSummaryPage();
         }
 
         function clearState() {
-            if(confirm("คุณต้องการล้างข้อมูลทั้งหมด และเริ่มใหม่ใช่หรือไม่? (ข้อมูลที่บันทึกไว้จะถูกลบทั้งหมด)")) {
+            if(confirm("คุณต้องการล้างข้อมูลทั้งหมด และเริ่มใหม่ใช่หรือไม่? (สามารถกดคืนค่าได้หากเปลี่ยนใจ)")) {
                 saveToUndoHistory(); 
                 localStorage.removeItem('profitShareState');
                 initDefaultState();
@@ -354,6 +325,7 @@
             document.querySelectorAll('.calc-tab').forEach(el => el.remove());
             document.querySelectorAll('.calc-view').forEach(el => el.remove());
             itemInstances = {};
+            roundInstances = {};
             globalIdCounter = 0;
             
             createItem(true);  
@@ -361,7 +333,6 @@
             if (firstTab) switchTab(firstTab.id.replace('menu_', ''));
         }
 
-        // ================= สลับหน้าจอ =================
         function switchTab(tabId) {
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
@@ -371,9 +342,7 @@
             if(menuEl) menuEl.classList.add('active');
             if(viewEl) viewEl.classList.add('active');
 
-            if(tabId === 'summary') {
-                renderSummaryPage();
-            }
+            if(tabId === 'summary') renderSummaryPage();
         }
 
         function renderSummaryPage() {
@@ -382,7 +351,7 @@
 
             const saved = localStorage.getItem('profitShareState');
             if (!saved) {
-                summaryContainer.innerHTML += '<div style="text-align:center; padding: 20px; color:#999; border: 2px dashed #ccc; border-radius: 8px;">ไม่มีข้อมูลที่บันทึก กรุณากดปุ่ม "💾 เก็บข้อมูล" ฝั่งซ้ายมือก่อนครับ</div>';
+                summaryContainer.innerHTML += '<div style="text-align:center; padding: 20px; color:#999; border: 2px dashed #ccc; border-radius: 8px;">ไม่มีข้อมูลที่บันทึก กรุณากดปุ่ม "💾 เก็บ" ฝั่งซ้ายมือก่อนครับ</div>';
                 return;
             }
 
@@ -392,182 +361,139 @@
                 return;
             }
 
-            window.summaryState = state.items;
+            window.summaryState = state.items; 
 
-            state.items.forEach((item, index) => {
-                const itemId = item.id;
+            state.items.forEach((item, itemIndex) => {
+                let html = `
+                    <div class="summary-card">
+                        <h2 class="view-title">${item.title}</h2>
+                `;
                 
-                const incomeNum = parseFloat(item.income.replace(/,/g, '')) || 0;
-                const costNum = parseFloat(item.cost.replace(/,/g, '')) || 0;
-                const netProfit = incomeNum - costNum;
-                const limitNum = parseFloat(item.limit.replace(/,/g, '')) || 0;
-                const vpp = limitNum > 0 ? netProfit / limitNum : 0;
+                item.rounds.forEach((round, rIndex) => {
+                    const incomeNum = parseFloat(round.income.replace(/,/g, '')) || 0;
+                    const costNum = parseFloat(round.cost.replace(/,/g, '')) || 0;
+                    const netProfit = incomeNum - costNum;
+                    const limitNum = parseFloat(round.limit.replace(/,/g, '')) || 0;
 
-                let optionsHtml = '<option value="">-- กรุณาเลือกกลุ่ม --</option>';
-                item.groups.forEach(g => {
-                    const dispName = g.name || 'ไม่มีชื่อกลุ่ม';
-                    optionsHtml += `<option value="${g.id}">${dispName}</option>`;
-                });
+                    let optionsHtml = '<option value="">-- กรุณาเลือกกลุ่ม --</option>';
+                    round.groups.forEach(g => {
+                        const dispName = (g.name || 'ไม่มีชื่อกลุ่ม').replace(/"/g, '&quot;');
+                        const isSelected = g.id === round.selectedGroup ? 'selected' : '';
+                        optionsHtml += `<option value="${g.id}" ${isSelected}>${dispName}</option>`;
+                    });
 
-                const wrapper = document.createElement('div');
-                wrapper.className = 'summary-item-wrapper';
-                wrapper.innerHTML = `
-                    <h2 class="view-title" style="color: #555 !important; margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px;">${item.title}</h2>
-                    <div class="inner-layout">
-                        <div class="inner-main">
-                            <div class="main-config">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                    <div class="input-group">
-                                        <label>ยอดที่เราจบ:</label>
-                                        <input type="text" value="${item.income}" readonly style="background-color:#e9ecef; color:#6c757d; pointer-events:none;">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>ยอดต้นทุนรวม (บาท):</label>
-                                        <input type="text" value="${item.cost}" readonly style="background-color:#e9ecef; color:#6c757d; pointer-events:none;">
-                                    </div>
-                                </div>
-                                <div class="summary-box">
-                                    <div>กำไรสุทธิ: <span class="highlight-text">${netProfit.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</span> บาท</div>
-                                    <div>มูลค่าต่อ 1% = <span class="highlight-text">${vpp.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</span> บาท</div>
-                                </div>
-                            </div>
+                    html += `
+                    <div class="summary-round">
+                        <h3 class="summary-round-title">รอบที่ ${rIndex + 1}</h3>
+                        <div class="summary-stats">
+                            <div>ยอดที่เราจบ: <b>${incomeNum.toLocaleString('th-TH')}</b></div>
+                            <div>ยอดต้นทุนรวม: <b>${costNum.toLocaleString('th-TH')}</b></div>
+                            <div>กำไรสุทธิ: <b style="color: #2196F3;">${netProfit.toLocaleString('th-TH')}</b></div>
+                            <div>% ใหญ่: <b>${limitNum}</b></div>
                         </div>
-
-                        <div class="inner-side">
-                            <h3 style="margin:0 0 10px 0; font-size:16px;">คำนวณแจกแจง / ขยาย % ย่อย</h3>
-                            <div class="input-group">
-                                <label>เลือกกลุ่มมาตั้งต้น:</label>
-                                <select id="sum_select_${itemId}" onchange="renderSummarySidePanel('${itemId}', ${index})">
+                        
+                        <div class="summary-breakdown">
+                            <div style="margin-bottom: 15px; font-weight: bold; color: #555; display: flex; align-items: center; gap: 10px;">
+                                คำนวณแจกแจงส่วนแบ่งย่อย
+                                <select id="sum_select_${round.id}" onchange="updateSummaryBreakdown('${item.id}', '${round.id}', ${itemIndex}, ${rIndex})" style="width: 250px; padding: 6px; font-size: 13px; border-radius: 4px; border: 1px solid #ccc;">
                                     ${optionsHtml}
                                 </select>
                             </div>
-
-                            <div class="summary-box" style="margin-bottom: 12px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <div>ตั้งต้น: <span class="highlight-text" id="sum_baseAmt_${itemId}" style="color:#FF9800;">0</span> บ.</div>
-                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
-                                        เป้าหมาย %:
-                                        <input type="text" id="sum_target_${itemId}" value="0" readonly style="width: 50px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #e9ecef; color: #6c757d;"> %
-                                    </div>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <div style="font-size: 11px; color: #666;">ยอดรวมคำนวณ: <span id="sum_calcAmt_${itemId}" style="font-weight: bold; color:#2196F3;">0</span> บ.</div>
-                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
-                                        ขยาย %:
-                                        <input type="text" id="sum_expand_${itemId}" readonly style="width: 50px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #e9ecef; color: #6c757d;"> %
-                                    </div>
-                                </div>
-                                <div style="display: flex; justify-content: flex-end; align-items: center; border-top: 1px dashed #ccc; padding-top: 8px;">
-                                    <div style="text-align: right; font-size: 12px; font-weight: bold; color: #d32f2f;">
-                                        รวม %:
-                                        <input type="text" id="sum_totalTarget_${itemId}" value="0" readonly style="width: 60px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #e9ecef; color: #d32f2f;"> %
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="sum_subItemList_${itemId}"></div>
-
-                            <div class="summary-box" style="margin-top: 15px; border-color: #9e9e9e; background-color: #f5f5f5;">
-                                <div>แบ่งไปแล้วรวม: <span id="sum_totSubPct_${itemId}" style="font-weight:bold;">0</span>% <span id="sum_alert_${itemId}" style="font-size:12px;"></span></div>
-                                <div>เงินที่แบ่งรวม: <span class="highlight-text" id="sum_totSubAmt_${itemId}" style="color: #d32f2f;">0</span> บาท</div>
-                                <div style="border-top: 1px solid #ccc; padding-top: 6px; margin-top: 6px;">
-                                    คงเหลือสุทธิ: <span class="highlight-text" id="sum_remAmt_${itemId}" style="color: #2e7d32;">0</span> บาท
-                                </div>
-                            </div>
+                            <div id="sum_breakdown_container_${round.id}"></div>
                         </div>
                     </div>
-                `;
-                summaryContainer.appendChild(wrapper);
+                    `;
+                });
+                
+                html += `</div>`;
+                summaryContainer.innerHTML += html;
+            });
 
-                if(item.selectedGroup) {
-                    document.getElementById(`sum_select_${itemId}`).value = item.selectedGroup;
-                }
-                renderSummarySidePanel(itemId, index);
+            state.items.forEach((item, itemIndex) => {
+                item.rounds.forEach((round, rIndex) => {
+                    updateSummaryBreakdown(item.id, round.id, itemIndex, rIndex);
+                });
             });
         }
 
-        function renderSummarySidePanel(itemId, itemIndex) {
+        function updateSummaryBreakdown(itemId, roundId, itemIndex, rIndex) {
             const item = window.summaryState[itemIndex];
-            const selId = document.getElementById(`sum_select_${itemId}`).value;
-            const container = document.getElementById(`sum_subItemList_${itemId}`);
-            container.innerHTML = '';
+            const round = item.rounds[rIndex];
+            const container = document.getElementById(`sum_breakdown_container_${roundId}`);
+            const selectEl = document.getElementById(`sum_select_${roundId}`);
+            const selGroupId = selectEl.value;
 
-            const incomeNum = parseFloat(item.income.replace(/,/g, '')) || 0;
-            const costNum = parseFloat(item.cost.replace(/,/g, '')) || 0;
+            if (!selGroupId) {
+                container.innerHTML = `<div style="color: #FF9800; font-style: italic; font-size: 14px;">* กรุณาเลือกกลุ่มเพื่อดูการคำนวณแจกแจงครับ</div>`;
+                return;
+            }
+
+            const selGroup = round.groups.find(g => g.id === selGroupId);
+            if (!selGroup) return;
+
+            const incomeNum = parseFloat(round.income.replace(/,/g, '')) || 0;
+            const costNum = parseFloat(round.cost.replace(/,/g, '')) || 0;
             const netProfit = incomeNum - costNum;
-            const limitNum = parseFloat(item.limit.replace(/,/g, '')) || 0;
+            const limitNum = parseFloat(round.limit.replace(/,/g, '')) || 0;
             const vpp = limitNum > 0 ? netProfit / limitNum : 0;
 
-            let baseAmt = 0;
-            let target = 0;
-            let expand = 0;
-            let subItems = [];
-
-            const group = item.groups.find(g => g.id === selId);
-            if (group) {
-                target = parseFloat(group.pct) || 0;
-                baseAmt = vpp * target;
-                expand = parseFloat(group.expandPct) || 0;
-                subItems = group.subItems || [];
-            }
-
+            const target = parseFloat(selGroup.pct) || 0;
+            const expand = parseFloat(selGroup.expandPct) || 0;
             const totalTarget = target + expand;
-
-            document.getElementById(`sum_baseAmt_${itemId}`).textContent = baseAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
-            document.getElementById(`sum_target_${itemId}`).value = target;
-            document.getElementById(`sum_expand_${itemId}`).value = expand || '';
-            document.getElementById(`sum_totalTarget_${itemId}`).value = totalTarget;
-
+            const baseAmt = vpp * target;
+            
             let onePercentValue = 0;
-            if (totalTarget > 0) {
-                onePercentValue = baseAmt / totalTarget; 
-            }
-            const calcAmt = onePercentValue * totalTarget; 
-            document.getElementById(`sum_calcAmt_${itemId}`).textContent = calcAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
-
+            if (totalTarget > 0) onePercentValue = baseAmt / totalTarget;
+            
             let totPct = 0;
             let totAmt = 0;
+            let subRows = '';
 
-            subItems.forEach(sub => {
+            (selGroup.subItems || []).forEach(sub => {
                 const p = parseFloat(sub.pct) || 0;
                 totPct += p;
-                let a = onePercentValue * p;
+                const a = onePercentValue * p;
                 totAmt += a;
-                
-                const html = `
-                    <div class="sub-item-box" style="background-color:#fdfdfd;">
-                        <div class="sub-item-header">
-                            <input type="text" value="${sub.name}" readonly style="background-color:#e9ecef; color:#6c757d; pointer-events:none; width:100%;">
-                        </div>
-                        <div class="sub-item-row" style="margin-top:6px;">
-                            <input type="text" value="${sub.pct}" readonly style="background-color:#e9ecef; color:#6c757d; pointer-events:none; width:45%;">
-                            <span class="sub-amount-display">${a.toLocaleString('th-TH', { maximumFractionDigits: 2 })} บาท</span>
-                        </div>
+                const safeName = (sub.name || '<i style="color:#999;">ไม่ระบุชื่อ</i>');
+                subRows += `
+                    <div class="breakdown-row">
+                        <span>- ${safeName}</span>
+                        <span><b>${p}%</b> &nbsp;&nbsp;&nbsp; <span style="color: #d32f2f; font-weight: bold;">${a.toLocaleString('th-TH', { maximumFractionDigits: 2 })} บาท</span></span>
                     </div>
                 `;
-                container.insertAdjacentHTML('beforeend', html);
             });
 
-            const alertSp = document.getElementById(`sum_alert_${itemId}`);
             const rTot = Math.round(totPct*100)/100;
             const rTar = Math.round(totalTarget*100)/100;
+            let alertHtml = '';
+            if (rTot > rTar) alertHtml = `<span style="color:red; margin-left: 5px;">(⚠️ เกิน ${(rTot-rTar).toFixed(2)}%)</span>`;
+            else if (rTot < rTar) alertHtml = `<span style="color:#FF9800; margin-left: 5px;">(ขาด ${(rTar-rTot).toFixed(2)}%)</span>`;
+            else alertHtml = `<span style="color:green; margin-left: 5px;">(ครบ)</span>`;
 
-            if (rTot > rTar) alertSp.innerHTML = `<span style="color:red;">(⚠️ เกิน ${(rTot-rTar).toFixed(2)}%)</span>`;
-            else if (rTot < rTar) alertSp.innerHTML = `<span style="color:#FF9800;">(ขาด ${(rTar-rTot).toFixed(2)}%)</span>`;
-            else alertSp.innerHTML = `<span style="color:green;">(ครบ)</span>`;
-
-            document.getElementById(`sum_totSubPct_${itemId}`).textContent = rTot;
-            document.getElementById(`sum_totSubAmt_${itemId}`).textContent = totAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
-            document.getElementById(`sum_remAmt_${itemId}`).textContent = (baseAmt - totAmt).toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            container.innerHTML = `
+                <div style="display: flex; justify-content: space-between; font-size: 13px; color: #666; margin-bottom: 15px;">
+                    <span>ยอดตั้งต้น: <b>${baseAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</b> บ.</span>
+                    <span>เป้าหมาย: <b>${target}%</b> | ขยาย: <b>${expand}%</b> | รวม %: <b style="color:#d32f2f;">${totalTarget}%</b></span>
+                </div>
+                
+                <div style="border: 1px solid #ddd; border-radius: 6px; background: #fff; padding: 15px;">
+                    ${subRows}
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 13px; padding-top: 10px; border-top: 1px dashed #ccc;">
+                        <span>แบ่งไปแล้ว: <b>${rTot}%</b> ${alertHtml}</span>
+                        <span>รวมเงินที่แบ่ง: <b style="color: #d32f2f;">${totAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 })} บาท</b></span>
+                    </div>
+                    <div style="text-align: right; font-size: 13px; color: #2e7d32; margin-top: 5px;">
+                        คงเหลือสุทธิ: <b>${(baseAmt - totAmt).toLocaleString('th-TH', { maximumFractionDigits: 2 })} บาท</b>
+                    </div>
+                </div>
+            `;
         }
 
-
-        // ================= จัดการรายการ (Tabs) สำหรับโหมดแก้ไข =================
         function createItem(isFixed = false) {
             globalIdCounter++;
             const itemId = `item_${Date.now()}_${globalIdCounter}`;
             
-            itemInstances[itemId] = { groupCount: 0, subItemCount: 0, groupData: {} };
+            itemInstances[itemId] = { roundCounter: 0, rounds: [] };
 
             const menuHTML = `
                 <div class="menu-item calc-tab" id="menu_${itemId}" onclick="switchTab('${itemId}')">
@@ -580,237 +506,16 @@
             const viewHTML = `
                 <div class="view-panel calc-view" id="view_${itemId}">
                     <h2 class="view-title" style="color: var(--primary-color);"></h2>
-                    
-                    <div class="inner-layout">
-                        <div class="inner-main">
-                            <div class="main-config">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                    <div class="input-group">
-                                        <label>ยอดที่เราจบ:</label>
-                                        <input type="text" id="income_${itemId}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatAndCalculate(this, '${itemId}')">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>ยอดต้นทุนรวม (บาท):</label>
-                                        <input type="text" id="cost_${itemId}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatAndCalculate(this, '${itemId}')">
-                                    </div>
-                                </div>
-                                <div class="summary-box">
-                                    <div>กำไรสุทธิ: <span class="highlight-text" id="netProfit_${itemId}">0</span> บาท</div>
-                                    <div>มูลค่าต่อ 1% = <span class="highlight-text" id="valuePerPct_${itemId}">0</span> บาท</div>
-                                </div>
-                            </div>
-
-                            <div class="percent-tracker-box">
-                                <div class="input-group" style="margin-bottom: 5px;">
-                                    <label>กำหนดช่อง % ใหญ่ (เปอร์เซ็นต์รวมสูงสุดของโครงการ):</label>
-                                    <input type="text" id="limit_${itemId}" value="100" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${itemId}')">
-                                </div>
-                                <div id="trackerStatus_${itemId}" style="font-size: 13px; margin-top: 5px; padding: 6px 10px; border-radius: 4px; background-color: #fff;"></div>
-                            </div>
-
-                            <div class="group-container" id="groupList_${itemId}"></div>
-                            <button class="add-btn" onclick="addGroup('${itemId}')">+ เพิ่มกลุ่มผู้รับเงิน</button>
-                        </div>
-
-                        <div class="inner-side">
-                            <h3 style="margin:0 0 10px 0; font-size:16px;">คำนวณแจกแจง / ขยาย % ย่อย</h3>
-                            <div class="input-group">
-                                <label>เลือกกลุ่มมาตั้งต้น:</label>
-                                <select id="select_${itemId}" onchange="onGroupSelectChange('${itemId}')">
-                                    <option value="">-- กรุณาเลือกกลุ่ม --</option>
-                                </select>
-                            </div>
-
-                            <div class="summary-box" style="margin-bottom: 12px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <div>ตั้งต้น: <span class="highlight-text" id="baseAmt_${itemId}" style="color:#FF9800;">0</span> บ.</div>
-                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
-                                        เป้าหมาย %:
-                                        <input type="text" id="target_${itemId}" value="0" readonly style="width: 50px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #f0f0f0; color: #555;"> %
-                                    </div>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <div style="font-size: 11px; color: #666;">ยอดรวมคำนวณ: <span id="calcAmt_${itemId}" style="font-weight: bold; color:#2196F3;">0</span> บ.</div>
-                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
-                                        ขยาย %:
-                                        <input type="text" id="expand_${itemId}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatExpandInput(this, '${itemId}')" style="width: 50px; text-align: center; font-weight: bold; border-color: #2196F3; padding: 4px;"> %
-                                    </div>
-                                </div>
-                                <div style="display: flex; justify-content: flex-end; align-items: center; border-top: 1px dashed #ccc; padding-top: 8px;">
-                                    <div style="text-align: right; font-size: 12px; font-weight: bold; color: #d32f2f;">
-                                        รวม %:
-                                        <input type="text" id="totalTarget_${itemId}" value="0" readonly style="width: 60px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #f0f0f0; color: #d32f2f;"> %
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button class="add-sub-btn" onclick="addSubItem('${itemId}')">+ เพิ่มส่วนแบ่งย่อย</button>
-                            <div id="subItemList_${itemId}"></div>
-
-                            <div class="summary-box" style="margin-top: 15px; border-color: #9e9e9e; background-color: #f5f5f5;">
-                                <div>แบ่งไปแล้วรวม: <span id="totSubPct_${itemId}" style="font-weight:bold;">0</span>% <span id="alert_${itemId}" style="font-size:12px;"></span></div>
-                                <div>เงินที่แบ่งรวม: <span class="highlight-text" id="totSubAmt_${itemId}" style="color: #d32f2f;">0</span> บาท</div>
-                                <div style="border-top: 1px solid #ccc; padding-top: 6px; margin-top: 6px;">
-                                    คงเหลือสุทธิ: <span class="highlight-text" id="remAmt_${itemId}" style="color: #2e7d32;">0</span> บาท
-                                </div>
-                            </div>
-                        </div>
+                    <div class="round-tabs" id="round_tabs_${itemId}">
+                        <button class="add-round-btn" onclick="addRound('${itemId}')">+ เพิ่มรอบ</button>
                     </div>
+                    <div id="round_views_${itemId}"></div>
                 </div>
             `;
             document.getElementById('main-content').insertAdjacentHTML('beforeend', viewHTML);
 
             updateItemSequence();
-
-            addGroup(itemId);
-            addGroup(itemId);
-
-            setTimeout(() => {
-                const select = document.getElementById(`select_${itemId}`);
-                if (select && select.options.length > 1) {
-                    select.selectedIndex = 1;
-                    onGroupSelectChange(itemId);
-                }
-            }, 50);
-        }
-
-        function restoreItem(itemData, isFirst) {
-            const itemId = itemData.id;
-            itemInstances[itemId] = {
-                groupCount: itemData.groupCount,
-                subItemCount: itemData.subItemCount,
-                groupData: {}
-            };
-
-            const menuHTML = `
-                <div class="menu-item calc-tab" id="menu_${itemId}" onclick="switchTab('${itemId}')">
-                    <span class="menu-title">${itemData.title}</span>
-                    <span class="delete-icon" onclick="deleteItem('${itemId}', event)" style="display:${isFirst?'none':'inline'};">✖</span>
-                </div>
-            `;
-            document.getElementById('sidebar-menu').insertAdjacentHTML('beforeend', menuHTML);
-
-            const viewHTML = `
-                <div class="view-panel calc-view" id="view_${itemId}">
-                    <h2 class="view-title" style="color: var(--primary-color);">${itemData.title}</h2>
-                    
-                    <div class="inner-layout">
-                        <div class="inner-main">
-                            <div class="main-config">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                    <div class="input-group">
-                                        <label>ยอดที่เราจบ:</label>
-                                        <input type="text" id="income_${itemId}" value="${itemData.income}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatAndCalculate(this, '${itemId}')">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>ยอดต้นทุนรวม (บาท):</label>
-                                        <input type="text" id="cost_${itemId}" value="${itemData.cost}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatAndCalculate(this, '${itemId}')">
-                                    </div>
-                                </div>
-                                <div class="summary-box">
-                                    <div>กำไรสุทธิ: <span class="highlight-text" id="netProfit_${itemId}">0</span> บาท</div>
-                                    <div>มูลค่าต่อ 1% = <span class="highlight-text" id="valuePerPct_${itemId}">0</span> บาท</div>
-                                </div>
-                            </div>
-
-                            <div class="percent-tracker-box">
-                                <div class="input-group" style="margin-bottom: 5px;">
-                                    <label>กำหนดช่อง % ใหญ่ (เปอร์เซ็นต์รวมสูงสุดของโครงการ):</label>
-                                    <input type="text" id="limit_${itemId}" value="${itemData.limit}" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${itemId}')">
-                                </div>
-                                <div id="trackerStatus_${itemId}" style="font-size: 13px; margin-top: 5px; padding: 6px 10px; border-radius: 4px; background-color: #fff;"></div>
-                            </div>
-
-                            <div class="group-container" id="groupList_${itemId}"></div>
-                            <button class="add-btn" onclick="addGroup('${itemId}')">+ เพิ่มกลุ่มผู้รับเงิน</button>
-                        </div>
-
-                        <div class="inner-side">
-                            <h3 style="margin:0 0 10px 0; font-size:16px;">คำนวณแจกแจง / ขยาย % ย่อย</h3>
-                            <div class="input-group">
-                                <label>เลือกกลุ่มมาตั้งต้น:</label>
-                                <select id="select_${itemId}" onchange="onGroupSelectChange('${itemId}')">
-                                    <option value="">-- กรุณาเลือกกลุ่ม --</option>
-                                </select>
-                            </div>
-
-                            <div class="summary-box" style="margin-bottom: 12px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <div>ตั้งต้น: <span class="highlight-text" id="baseAmt_${itemId}" style="color:#FF9800;">0</span> บ.</div>
-                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
-                                        เป้าหมาย %:
-                                        <input type="text" id="target_${itemId}" value="0" readonly style="width: 50px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #f0f0f0; color: #555;"> %
-                                    </div>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <div style="font-size: 11px; color: #666;">ยอดรวมคำนวณ: <span id="calcAmt_${itemId}" style="font-weight: bold; color:#2196F3;">0</span> บ.</div>
-                                    <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
-                                        ขยาย %:
-                                        <input type="text" id="expand_${itemId}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatExpandInput(this, '${itemId}')" style="width: 50px; text-align: center; font-weight: bold; border-color: #2196F3; padding: 4px;"> %
-                                    </div>
-                                </div>
-                                <div style="display: flex; justify-content: flex-end; align-items: center; border-top: 1px dashed #ccc; padding-top: 8px;">
-                                    <div style="text-align: right; font-size: 12px; font-weight: bold; color: #d32f2f;">
-                                        รวม %:
-                                        <input type="text" id="totalTarget_${itemId}" value="0" readonly style="width: 60px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #f0f0f0; color: #d32f2f;"> %
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button class="add-sub-btn" onclick="addSubItem('${itemId}')">+ เพิ่มส่วนแบ่งย่อย</button>
-                            <div id="subItemList_${itemId}"></div>
-
-                            <div class="summary-box" style="margin-top: 15px; border-color: #9e9e9e; background-color: #f5f5f5;">
-                                <div>แบ่งไปแล้วรวม: <span id="totSubPct_${itemId}" style="font-weight:bold;">0</span>% <span id="alert_${itemId}" style="font-size:12px;"></span></div>
-                                <div>เงินที่แบ่งรวม: <span class="highlight-text" id="totSubAmt_${itemId}" style="color: #d32f2f;">0</span> บาท</div>
-                                <div style="border-top: 1px solid #ccc; padding-top: 6px; margin-top: 6px;">
-                                    คงเหลือสุทธิ: <span class="highlight-text" id="remAmt_${itemId}" style="color: #2e7d32;">0</span> บาท
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.getElementById('main-content').insertAdjacentHTML('beforeend', viewHTML);
-
-            itemData.groups.forEach((g, index) => {
-                const gId = g.id;
-                
-                itemInstances[itemId].groupData[gId] = {
-                    amt: 0,
-                    pct: parseFloat(String(g.pct).replace(/,/g, '')) || 0,
-                    expandPct: parseFloat(String(g.expandPct).replace(/,/g, '')) || 0,
-                    subItems: g.subItems || []
-                };
-
-                const gHtml = `
-                    <div class="group-box" id="${gId}">
-                        <div class="group-header">
-                            <input type="text" class="g-name" placeholder="ชื่อกลุ่ม" value="${g.name}" oninput="calculateAll('${itemId}')">
-                            <button class="remove-btn" onclick="removeGroup('${itemId}', '${gId}')" style="display:${index<2?'none':'inline'};">ลบ</button>
-                        </div>
-                        <div class="input-group" style="margin-bottom:0;">
-                            <label>ส่วนแบ่ง (%):</label>
-                            <input type="text" class="g-pct" placeholder="0" value="${g.pct}" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${itemId}')">
-                        </div>
-                        <div class="result-box">ยอดรวมกลุ่ม: <span class="highlight-text g-amt">0</span> บาท</div>
-                    </div>
-                `;
-                document.getElementById(`groupList_${itemId}`).insertAdjacentHTML('beforeend', gHtml);
-            });
-            
-            updateGroupSequence(itemId);
-            calculateAll(itemId);
-
-            if (itemData.selectedGroup) {
-                setTimeout(() => {
-                    const select = document.getElementById(`select_${itemId}`);
-                    if(select) {
-                        select.value = itemData.selectedGroup;
-                        onGroupSelectChange(itemId);
-                    }
-                }, 50);
-            }
+            addRound(itemId, true); 
         }
 
         function deleteItem(itemId, event) {
@@ -823,11 +528,8 @@
                 updateItemSequence();
                 
                 const firstTab = document.querySelector('.calc-tab');
-                if (firstTab) {
-                    switchTab(firstTab.id.replace('menu_', ''));
-                } else {
-                    switchTab('summary');
-                }
+                if (firstTab) switchTab(firstTab.id.replace('menu_', ''));
+                else switchTab('summary');
             }
         }
 
@@ -839,101 +541,375 @@
                 tab.querySelector('.menu-title').textContent = titleText;
                 
                 const delIcon = tab.querySelector('.delete-icon');
-                if (num === 1) {
-                    if(delIcon) delIcon.style.display = 'none'; 
-                } else {
-                    if(delIcon) delIcon.style.display = 'inline'; 
-                }
+                if (num === 1) { if(delIcon) delIcon.style.display = 'none'; } 
+                else { if(delIcon) delIcon.style.display = 'inline'; }
 
                 const itemId = tab.id.replace('menu_', '');
                 document.querySelector(`#view_${itemId} .view-title`).textContent = titleText;
             });
         }
 
-        // ================= ระบบคำนวณฝั่งซ้าย (กลุ่มหลัก) =================
-        function addGroup(itemId) {
-            const state = itemInstances[itemId];
-            state.groupCount++;
-            const groupId = `${itemId}_g_${state.groupCount}`;
+        function addRound(itemId, isFirst = false, loadedData = null) {
+            const itemState = itemInstances[itemId];
+
+            if (!isFirst && !loadedData) {
+                const prevRoundId = itemState.rounds[itemState.rounds.length - 1];
+                let hasData = false;
+                const prevGroups = document.querySelectorAll(`#groupList_${prevRoundId} .group-box`);
+                prevGroups.forEach(gb => {
+                    const pct = parseFloat(gb.querySelector('.g-pct').value) || 0;
+                    if (pct > 0) hasData = true;
+                });
+
+                if (!hasData) {
+                    alert("⚠️ กรุณากรอกข้อมูล ส่วนแบ่ง (%) ในกลุ่มผู้รับเงินของรอบปัจจุบันให้เรียบร้อยก่อนทำการเพิ่มรอบใหม่ครับ");
+                    return;
+                }
+            }
             
+            itemState.roundCounter++;
+            const roundIndex = itemState.roundCounter; 
+            const roundId = loadedData ? loadedData.id : `${itemId}_r_${Date.now()}_${roundIndex}`;
+            
+            itemState.rounds.push(roundId);
+            
+            const tabBtn = document.createElement('div');
+            tabBtn.className = `round-tab ${isFirst ? 'active' : ''}`;
+            tabBtn.id = `tab_${roundId}`;
+            let tabInner = `<span onclick="switchRound('${itemId}', '${roundId}')">รอบ ${itemState.rounds.length}</span>`;
+            if (!isFirst) {
+                tabInner += `<span class="del-round" onclick="deleteRound('${itemId}', '${roundId}', event)">✖</span>`;
+            }
+            tabBtn.innerHTML = tabInner;
+            const tabsContainer = document.getElementById(`round_tabs_${itemId}`);
+            tabsContainer.insertBefore(tabBtn, tabsContainer.querySelector('.add-round-btn'));
+
+            const roundView = document.createElement('div');
+            roundView.className = `round-view ${isFirst ? 'active' : ''}`;
+            roundView.id = `view_${roundId}`;
+
+            // เพิ่ม inputmode="decimal" สำหรับมือถือ
+            roundView.innerHTML = `
+                <div class="inner-layout">
+                    <div class="inner-main">
+                        <div class="main-config">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div class="input-group">
+                                    <label>ยอดที่เราจบ:</label>
+                                    <input type="text" inputmode="decimal" id="income_${roundId}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatAndCalculate(this, '${roundId}')">
+                                </div>
+                                <div class="input-group">
+                                    <label>ยอดต้นทุนรวม (บาท):</label>
+                                    <input type="text" inputmode="decimal" id="cost_${roundId}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatAndCalculate(this, '${roundId}')">
+                                </div>
+                            </div>
+                            <div class="summary-box">
+                                <div>กำไรสุทธิ: <span class="highlight-text" id="netProfit_${roundId}">0</span> บาท</div>
+                                <div>มูลค่าต่อ 1% = <span class="highlight-text" id="valuePerPct_${roundId}">0</span> บาท</div>
+                            </div>
+                        </div>
+
+                        <div class="percent-tracker-box">
+                            <div class="input-group" style="margin-bottom: 5px;">
+                                <label>กำหนดช่อง % ใหญ่ (เปอร์เซ็นต์รวมสูงสุด):</label>
+                                <input type="text" inputmode="decimal" id="limit_${roundId}" value="100" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${roundId}')">
+                            </div>
+                            <div id="trackerStatus_${roundId}" style="font-size: 13px; margin-top: 5px; padding: 6px 10px; border-radius: 4px; background-color: #fff;"></div>
+                        </div>
+
+                        <div class="group-container" id="groupList_${roundId}"></div>
+                        <button class="add-btn" onclick="addGroup('${roundId}')">+ เพิ่มกลุ่มผู้รับเงิน</button>
+                    </div>
+
+                    <div class="inner-side">
+                        <h3 style="margin:0 0 10px 0; font-size:16px;">คำนวณแจกแจง / ขยาย % ย่อย</h3>
+                        <div class="input-group">
+                            <label>เลือกกลุ่มมาตั้งต้น:</label>
+                            <select id="select_${roundId}" onchange="onGroupSelectChange('${roundId}')">
+                                <option value="">-- กรุณาเลือกกลุ่ม --</option>
+                            </select>
+                        </div>
+
+                        <div class="summary-box" style="margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div>ตั้งต้น: <span class="highlight-text" id="baseAmt_${roundId}" style="color:#FF9800;">0</span> บ.</div>
+                                <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
+                                    เป้าหมาย %:
+                                    <input type="text" id="target_${roundId}" value="0" readonly style="width: 50px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #f0f0f0; color: #555;"> %
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div style="font-size: 11px; color: #666;">ยอดรวมคำนวณ: <span id="calcAmt_${roundId}" style="font-weight: bold; color:#2196F3;">0</span> บ.</div>
+                                <div style="text-align: right; font-size: 11px; font-weight: bold; color: #666;">
+                                    ขยาย %:
+                                    <input type="text" inputmode="decimal" id="expand_${roundId}" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatExpandInput(this, '${roundId}')" style="width: 50px; text-align: center; font-weight: bold; border-color: #2196F3; padding: 4px;"> %
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: flex-end; align-items: center; border-top: 1px dashed #ccc; padding-top: 8px;">
+                                <div style="text-align: right; font-size: 12px; font-weight: bold; color: #d32f2f;">
+                                    รวม %:
+                                    <input type="text" id="totalTarget_${roundId}" value="0" readonly style="width: 60px; text-align: center; font-weight: bold; border-color: #ccc; padding: 4px; background-color: #f0f0f0; color: #d32f2f;"> %
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="add-sub-btn" onclick="addSubItem('${roundId}')">+ เพิ่มส่วนแบ่งย่อย</button>
+                        <div id="subItemList_${roundId}"></div>
+
+                        <div class="summary-box" style="margin-top: 15px; border-color: #9e9e9e; background-color: #f5f5f5;">
+                            <div>แบ่งไปแล้วรวม: <span id="totSubPct_${roundId}" style="font-weight:bold;">0</span>% <span id="alert_${roundId}" style="font-size:12px;"></span></div>
+                            <div>เงินที่แบ่งรวม: <span class="highlight-text" id="totSubAmt_${roundId}" style="color: #d32f2f;">0</span> บาท</div>
+                            <div style="border-top: 1px solid #ccc; padding-top: 6px; margin-top: 6px;">
+                                คงเหลือสุทธิ: <span class="highlight-text" id="remAmt_${roundId}" style="color: #2e7d32;">0</span> บาท
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById(`round_views_${itemId}`).appendChild(roundView);
+
+            roundInstances[roundId] = { groupCount: 0, subItemCount: 0, groupData: {} };
+
+            if (loadedData) {
+                restoreRound(roundId, loadedData);
+            } else if (isFirst) {
+                addGroup(roundId); addGroup(roundId);
+                setTimeout(() => {
+                    const sel = document.getElementById(`select_${roundId}`);
+                    if(sel && sel.options.length > 1) { sel.selectedIndex = 1; onGroupSelectChange(roundId); }
+                }, 50);
+            } else {
+                saveToUndoHistory(); 
+                const prevRoundId = itemState.rounds[itemState.rounds.length - 2];
+                copyRound(prevRoundId, roundId);
+                switchRound(itemId, roundId);
+            }
+        }
+
+        function switchRound(itemId, roundId) {
+            document.querySelectorAll(`#round_tabs_${itemId} .round-tab`).forEach(t => t.classList.remove('active'));
+            document.querySelectorAll(`#round_views_${itemId} .round-view`).forEach(v => v.classList.remove('active'));
+            document.getElementById(`tab_${roundId}`).classList.add('active');
+            document.getElementById(`view_${roundId}`).classList.add('active');
+        }
+
+        function deleteRound(itemId, roundId, event) {
+            event.stopPropagation();
+            if(confirm('ยืนยันการลบรอบการคำนวณนี้?')) {
+                saveToUndoHistory();
+                document.getElementById(`tab_${roundId}`).remove();
+                document.getElementById(`view_${roundId}`).remove();
+                delete roundInstances[roundId];
+                itemInstances[itemId].rounds = itemInstances[itemId].rounds.filter(id => id !== roundId);
+                updateRoundTabs(itemId);
+                switchRound(itemId, itemInstances[itemId].rounds[0]);
+            }
+        }
+
+        function updateRoundTabs(itemId) {
+            itemInstances[itemId].rounds.forEach((rId, index) => {
+                const tab = document.getElementById(`tab_${rId}`);
+                if(tab) tab.querySelector('span:first-child').textContent = `รอบ ${index + 1}`;
+            });
+        }
+
+        function copyRound(prevId, newId) {
+            document.getElementById(`income_${newId}`).value = '';
+            document.getElementById(`cost_${newId}`).value = '';
+            document.getElementById(`limit_${newId}`).value = document.getElementById(`limit_${prevId}`).value;
+
+            const prevState = roundInstances[prevId];
+            for (let gId in prevState.groupData) {
+                const g = prevState.groupData[gId];
+                const gName = document.querySelector(`#${gId} .g-name`).value;
+                const gPct = document.querySelector(`#${gId} .g-pct`).value;
+
+                roundInstances[newId].groupCount++;
+                const newGId = `${newId}_g_${roundInstances[newId].groupCount}`;
+                
+                const timeStr = Date.now() + Math.floor(Math.random()*1000);
+                const newSubs = g.subItems.map((s, idx) => ({ id: `${newGId}_s_${timeStr}_${idx}`, name: s.name, pct: s.pct }));
+                
+                roundInstances[newId].groupData[newGId] = { amt: 0, pct: g.pct, expandPct: g.expandPct, subItems: newSubs };
+
+                const html = `
+                    <div class="group-box" id="${newGId}">
+                        <div class="group-header">
+                            <input type="text" class="g-name" placeholder="ชื่อกลุ่ม" value="${gName.replace(/"/g, '&quot;')}" oninput="calculateAll('${newId}')">
+                            <button class="remove-btn" onclick="removeGroup('${newId}', '${newGId}')">ลบ</button>
+                        </div>
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label>ส่วนแบ่ง (%):</label>
+                            <input type="text" inputmode="decimal" class="g-pct" placeholder="0" value="${gPct}" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${newId}')">
+                        </div>
+                        <div class="result-box">ยอดรวมกลุ่ม: <span class="highlight-text g-amt">0</span> บาท</div>
+                    </div>
+                `;
+                document.getElementById(`groupList_${newId}`).insertAdjacentHTML('beforeend', html);
+                roundInstances[newId].subItemCount = Math.max(roundInstances[newId].subItemCount, newSubs.length);
+            }
+
+            updateGroupSequence(newId);
+            calculateAll(newId);
+
+            const prevSelIdx = document.getElementById(`select_${prevId}`).selectedIndex;
+            setTimeout(() => {
+                document.getElementById(`select_${newId}`).selectedIndex = prevSelIdx;
+                onGroupSelectChange(newId);
+            }, 50);
+        }
+
+        function restoreItem(itemData, isFirst) {
+            const itemId = itemData.id;
+            itemInstances[itemId] = { roundCounter: itemData.roundCounter || itemData.rounds.length, rounds: [] };
+            
+            const menuHTML = `
+                <div class="menu-item calc-tab" id="menu_${itemId}" onclick="switchTab('${itemId}')">
+                    <span class="menu-title">${itemData.title}</span>
+                    <span class="delete-icon" onclick="deleteItem('${itemId}', event)" style="display:${isFirst?'none':'inline'};">✖</span>
+                </div>
+            `;
+            document.getElementById('sidebar-menu').insertAdjacentHTML('beforeend', menuHTML);
+
+            const viewHTML = `
+                <div class="view-panel calc-view" id="view_${itemId}">
+                    <h2 class="view-title" style="color: var(--primary-color);">${itemData.title}</h2>
+                    <div class="round-tabs" id="round_tabs_${itemId}">
+                        <button class="add-round-btn" onclick="addRound('${itemId}')">+ เพิ่มรอบ</button>
+                    </div>
+                    <div id="round_views_${itemId}"></div>
+                </div>
+            `;
+            document.getElementById('main-content').insertAdjacentHTML('beforeend', viewHTML);
+
+            itemData.rounds.forEach((rData, rIdx) => {
+                addRound(itemId, rIdx === 0, rData);
+            });
+        }
+
+        function restoreRound(roundId, roundData) {
+            document.getElementById(`income_${roundId}`).value = roundData.income;
+            document.getElementById(`cost_${roundId}`).value = roundData.cost;
+            document.getElementById(`limit_${roundId}`).value = roundData.limit;
+
+            roundInstances[roundId].groupCount = roundData.groupCount || 0;
+            roundInstances[roundId].subItemCount = roundData.subItemCount || 0;
+
+            roundData.groups.forEach((g, index) => {
+                const gId = g.id;
+                roundInstances[roundId].groupData[gId] = {
+                    amt: 0, pct: parseFloat(String(g.pct).replace(/,/g, '')) || 0,
+                    expandPct: parseFloat(String(g.expandPct).replace(/,/g, '')) || 0,
+                    subItems: g.subItems || []
+                };
+
+                const gHtml = `
+                    <div class="group-box" id="${gId}">
+                        <div class="group-header">
+                            <input type="text" class="g-name" placeholder="ชื่อกลุ่ม" value="${(g.name||'').replace(/"/g, '&quot;')}" oninput="calculateAll('${roundId}')">
+                            <button class="remove-btn" onclick="removeGroup('${roundId}', '${gId}')">ลบ</button>
+                        </div>
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label>ส่วนแบ่ง (%):</label>
+                            <input type="text" inputmode="decimal" class="g-pct" placeholder="0" value="${g.pct}" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${roundId}')">
+                        </div>
+                        <div class="result-box">ยอดรวมกลุ่ม: <span class="highlight-text g-amt">0</span> บาท</div>
+                    </div>
+                `;
+                document.getElementById(`groupList_${roundId}`).insertAdjacentHTML('beforeend', gHtml);
+            });
+            
+            updateGroupSequence(roundId);
+            calculateAll(roundId);
+
+            if (roundData.selectedGroup) {
+                setTimeout(() => {
+                    const select = document.getElementById(`select_${roundId}`);
+                    if(select) {
+                        select.value = roundData.selectedGroup;
+                        onGroupSelectChange(roundId);
+                    }
+                }, 50);
+            }
+        }
+
+        function addGroup(roundId) {
+            const state = roundInstances[roundId];
+            state.groupCount++;
+            const groupId = `${roundId}_g_${state.groupCount}`;
+            
+            const tStr = Date.now() + Math.floor(Math.random()*1000);
             state.groupData[groupId] = {
-                amt: 0,
-                pct: 0,
-                expandPct: 0, 
-                subItems: [
-                    { id: `${groupId}_s_1`, name: '', pct: '' },
-                    { id: `${groupId}_s_2`, name: '', pct: '' }
+                amt: 0, pct: 0, expandPct: 0, 
+                subItems: [ 
+                    { id: `${groupId}_s_${tStr}_1`, name: '', pct: '' }, 
+                    { id: `${groupId}_s_${tStr}_2`, name: '', pct: '' } 
                 ]
             };
 
             const html = `
                 <div class="group-box" id="${groupId}">
                     <div class="group-header">
-                        <input type="text" class="g-name" placeholder="ชื่อกลุ่ม" oninput="calculateAll('${itemId}')">
-                        <button class="remove-btn" onclick="removeGroup('${itemId}', '${groupId}')">ลบ</button>
+                        <input type="text" class="g-name" placeholder="ชื่อกลุ่ม" oninput="calculateAll('${roundId}')">
+                        <button class="remove-btn" onclick="removeGroup('${roundId}', '${groupId}')">ลบ</button>
                     </div>
                     <div class="input-group" style="margin-bottom:0;">
                         <label>ส่วนแบ่ง (%):</label>
-                        <input type="text" class="g-pct" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${itemId}')">
+                        <input type="text" inputmode="decimal" class="g-pct" placeholder="0" onkeydown="allowOnlyNumbers(event)" oninput="formatPercentInput(this, 'all', '${roundId}')">
                     </div>
                     <div class="result-box">ยอดรวมกลุ่ม: <span class="highlight-text g-amt">0</span> บาท</div>
                 </div>
             `;
-            document.getElementById(`groupList_${itemId}`).insertAdjacentHTML('beforeend', html);
-            updateGroupSequence(itemId);
-            calculateAll(itemId);
+            document.getElementById(`groupList_${roundId}`).insertAdjacentHTML('beforeend', html);
+            updateGroupSequence(roundId);
+            calculateAll(roundId);
         }
 
-        function removeGroup(itemId, groupId) {
+        function removeGroup(roundId, groupId) {
             saveToUndoHistory();
             document.getElementById(groupId).remove();
-            const state = itemInstances[itemId];
+            const state = roundInstances[roundId];
             delete state.groupData[groupId];
-            updateGroupSequence(itemId);
-            calculateAll(itemId);
+            updateGroupSequence(roundId);
+            calculateAll(roundId);
 
-            const select = document.getElementById(`select_${itemId}`);
+            const select = document.getElementById(`select_${roundId}`);
             if (select.value === groupId || select.value === '') {
                 select.selectedIndex = 0;
-                renderSidePanel(itemId);
+                renderSidePanel(roundId);
             }
         }
 
-        function updateGroupSequence(itemId) {
-            const groups = document.querySelectorAll(`#groupList_${itemId} .group-box`);
+        function updateGroupSequence(roundId) {
+            const groups = document.querySelectorAll(`#groupList_${roundId} .group-box`);
             groups.forEach((group, index) => {
                 const num = index + 1;
                 group.querySelector('.g-name').placeholder = `กลุ่มที่ ${num} / ชื่อ`;
                 const rBtn = group.querySelector('.remove-btn');
-                
-                if (num <= 2) { 
-                    if(rBtn) rBtn.style.display = 'none'; 
-                } 
-                else { 
-                    if(rBtn) rBtn.style.display = 'inline'; 
-                }
+                if (num <= 2) { if(rBtn) rBtn.style.display = 'none'; } 
+                else { if(rBtn) rBtn.style.display = 'inline'; }
             });
         }
 
-        function calculateAll(itemId) {
-            const state = itemInstances[itemId];
-            const income = getRawNumber(`income_${itemId}`);
-            const cost = getRawNumber(`cost_${itemId}`);
+        function calculateAll(roundId) {
+            const state = roundInstances[roundId];
+            const income = getRawNumber(`income_${roundId}`);
+            const cost = getRawNumber(`cost_${roundId}`);
             const netProfit = income - cost;
-            const limit = parseFloat(document.getElementById(`limit_${itemId}`).value) || 0;
+            const limit = parseFloat(document.getElementById(`limit_${roundId}`).value) || 0;
             
             let vpp = 0;
             if (limit > 0) vpp = netProfit / limit;
 
-            document.getElementById(`netProfit_${itemId}`).textContent = netProfit.toLocaleString('th-TH', { maximumFractionDigits: 2 });
-            document.getElementById(`valuePerPct_${itemId}`).textContent = vpp.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            document.getElementById(`netProfit_${roundId}`).textContent = netProfit.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            document.getElementById(`valuePerPct_${roundId}`).textContent = vpp.toLocaleString('th-TH', { maximumFractionDigits: 2 });
 
             let totalPct = 0;
-            const select = document.getElementById(`select_${itemId}`);
+            const select = document.getElementById(`select_${roundId}`);
             const currentSel = select.value;
             select.innerHTML = '<option value="">-- กรุณาเลือกกลุ่ม --</option>';
 
-            const groups = document.querySelectorAll(`#groupList_${itemId} .group-box`);
+            const groups = document.querySelectorAll(`#groupList_${roundId} .group-box`);
             groups.forEach(group => {
                 const gId = group.id;
                 const pct = parseFloat(group.querySelector('.g-pct').value) || 0;
@@ -954,7 +930,7 @@
 
             if (currentSel && state.groupData[currentSel]) select.value = currentSel;
 
-            const status = document.getElementById(`trackerStatus_${itemId}`);
+            const status = document.getElementById(`trackerStatus_${roundId}`);
             if (totalPct > limit) {
                 status.innerHTML = `<b style="color:red;">⚠️ รวมแล้ว ${totalPct}% (เกิน ${limit}%)!</b>`;
                 status.parentElement.style.borderColor = "red";
@@ -964,51 +940,45 @@
                 status.parentElement.style.borderColor = "var(--secondary-color)";
             }
 
-            calculateSidePanel(itemId); 
+            calculateSidePanel(roundId); 
         }
 
-        // ================= ระบบฝั่งขวา (จดจำและดึงข้อมูลตามกลุ่ม) =================
-        function onGroupSelectChange(itemId) {
-            renderSidePanel(itemId);
+        function onGroupSelectChange(roundId) {
+            renderSidePanel(roundId);
         }
 
-        function renderSidePanel(itemId) {
-            const state = itemInstances[itemId];
-            const selId = document.getElementById(`select_${itemId}`).value;
-            const container = document.getElementById(`subItemList_${itemId}`);
+        function renderSidePanel(roundId) {
+            const state = roundInstances[roundId];
+            const selId = document.getElementById(`select_${roundId}`).value;
+            const container = document.getElementById(`subItemList_${roundId}`);
             
-            const targetInput = document.getElementById(`target_${itemId}`);
-            const expandInput = document.getElementById(`expand_${itemId}`);
+            const targetInput = document.getElementById(`target_${roundId}`);
+            const expandInput = document.getElementById(`expand_${roundId}`);
             
             container.innerHTML = ''; 
 
             if (!selId || !state.groupData[selId]) {
-                targetInput.value = '0';
-                expandInput.value = '';
-                calculateSidePanel(itemId);
+                targetInput.value = '0'; expandInput.value = '';
+                calculateSidePanel(roundId);
                 return;
             }
 
             const gData = state.groupData[selId];
-            
             targetInput.value = gData.pct; 
             expandInput.value = gData.expandPct || ''; 
 
             gData.subItems.forEach((sub, index) => {
-                // ซ่อนปุ่มลบ 2 อันแรก
                 let removeHtml = '';
-                if (index >= 2) {
-                    removeHtml = `<button class="remove-btn" onclick="removeSubItem('${itemId}', '${selId}', '${sub.id}')">ลบ</button>`;
-                }
+                if (index >= 2) removeHtml = `<button class="remove-btn" onclick="removeSubItem('${roundId}', '${selId}', '${sub.id}')">ลบ</button>`;
 
                 const html = `
                     <div class="sub-item-box" id="${sub.id}">
                         <div class="sub-item-header">
-                            <input type="text" placeholder="ชื่อผู้รับ/รายละเอียด" value="${sub.name}" oninput="updateSubItemData('${itemId}', '${selId}', '${sub.id}', 'name', this.value)">
+                            <input type="text" placeholder="ชื่อผู้รับ/รายละเอียด" value="${(sub.name||'').replace(/"/g, '&quot;')}" oninput="updateSubItemData('${roundId}', '${selId}', '${sub.id}', 'name', this.value)">
                             ${removeHtml}
                         </div>
                         <div class="sub-item-row">
-                            <input type="text" class="s-pct" placeholder="ใส่ %" value="${sub.pct}" onkeydown="allowOnlyNumbers(event)" oninput="updateSubItemData('${itemId}', '${selId}', '${sub.id}', 'pct', this.value); formatPercentInput(this, 'side', '${itemId}');">
+                            <input type="text" inputmode="decimal" class="s-pct" placeholder="ใส่ %" value="${sub.pct}" onkeydown="allowOnlyNumbers(event)" oninput="updateSubItemData('${roundId}', '${selId}', '${sub.id}', 'pct', this.value); formatPercentInput(this, 'side', '${roundId}');">
                             <span class="sub-amount-display s-amt">0 บาท</span>
                         </div>
                     </div>
@@ -1016,11 +986,11 @@
                 container.insertAdjacentHTML('beforeend', html);
             });
 
-            calculateSidePanel(itemId);
+            calculateSidePanel(roundId);
         }
 
-        function updateSubItemData(itemId, groupId, subId, field, value) {
-            const state = itemInstances[itemId];
+        function updateSubItemData(roundId, groupId, subId, field, value) {
+            const state = roundInstances[roundId];
             if (!state.groupData[groupId]) return;
             const sub = state.groupData[groupId].subItems.find(s => s.id === subId);
             if (sub) {
@@ -1033,34 +1003,30 @@
             }
         }
 
-        function addSubItem(itemId) {
-            const selId = document.getElementById(`select_${itemId}`).value;
-            if (!selId) {
-                alert("กรุณาเลือกกลุ่มก่อนเพิ่มส่วนแบ่งย่อย");
-                return;
-            }
-            const state = itemInstances[itemId];
+        function addSubItem(roundId) {
+            const selId = document.getElementById(`select_${roundId}`).value;
+            if (!selId) { alert("กรุณาเลือกกลุ่มก่อนเพิ่มส่วนแบ่งย่อย"); return; }
+            
+            const state = roundInstances[roundId];
             state.subItemCount++;
-            const subId = `${selId}_s_${state.subItemCount}`;
+            const subId = `${selId}_s_${Date.now()}_${state.subItemCount}`;
 
             state.groupData[selId].subItems.push({ id: subId, name: '', pct: '' });
-            renderSidePanel(itemId); 
+            renderSidePanel(roundId); 
         }
 
-        function removeSubItem(itemId, groupId, subId) {
+        function removeSubItem(roundId, groupId, subId) {
             saveToUndoHistory();
-            const state = itemInstances[itemId];
+            const state = roundInstances[roundId];
             state.groupData[groupId].subItems = state.groupData[groupId].subItems.filter(s => s.id !== subId);
-            renderSidePanel(itemId);
+            renderSidePanel(roundId);
         }
 
-        function calculateSidePanel(itemId) {
-            const state = itemInstances[itemId];
-            const selId = document.getElementById(`select_${itemId}`).value;
+        function calculateSidePanel(roundId) {
+            const state = roundInstances[roundId];
+            const selId = document.getElementById(`select_${roundId}`).value;
             
-            let baseAmt = 0;
-            let target = 0;
-            let expand = 0;
+            let baseAmt = 0; let target = 0; let expand = 0;
             
             if (selId && state.groupData[selId]) {
                 baseAmt = state.groupData[selId].amt;
@@ -1070,31 +1036,28 @@
 
             const totalTarget = target + expand;
 
-            document.getElementById(`baseAmt_${itemId}`).textContent = baseAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
-            document.getElementById(`target_${itemId}`).value = target; 
-            document.getElementById(`totalTarget_${itemId}`).value = totalTarget; 
+            document.getElementById(`baseAmt_${roundId}`).textContent = baseAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            document.getElementById(`target_${roundId}`).value = target; 
+            document.getElementById(`totalTarget_${roundId}`).value = totalTarget; 
 
             let onePercentValue = 0;
-            if (totalTarget > 0) {
-                onePercentValue = baseAmt / totalTarget; 
-            }
+            if (totalTarget > 0) onePercentValue = baseAmt / totalTarget; 
+            
             const calcAmt = onePercentValue * totalTarget; 
-            document.getElementById(`calcAmt_${itemId}`).textContent = calcAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            document.getElementById(`calcAmt_${roundId}`).textContent = calcAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
 
-            let totPct = 0;
-            let totAmt = 0;
+            let totPct = 0; let totAmt = 0;
 
-            const subs = document.querySelectorAll(`#subItemList_${itemId} .sub-item-box`);
+            const subs = document.querySelectorAll(`#subItemList_${roundId} .sub-item-box`);
             subs.forEach(sub => {
                 const p = parseFloat(sub.querySelector('.s-pct').value) || 0;
                 totPct += p;
-                
                 let a = onePercentValue * p;
                 totAmt += a;
                 sub.querySelector('.s-amt').textContent = a.toLocaleString('th-TH', { maximumFractionDigits: 2 }) + ' บาท';
             });
 
-            const alertSp = document.getElementById(`alert_${itemId}`);
+            const alertSp = document.getElementById(`alert_${roundId}`);
             const rTot = Math.round(totPct*100)/100;
             const rTar = Math.round(totalTarget*100)/100; 
 
@@ -1102,23 +1065,29 @@
             else if (rTot < rTar) alertSp.innerHTML = `<span style="color:#FF9800;">(ขาด ${(rTar-rTot).toFixed(2)}%)</span>`;
             else alertSp.innerHTML = `<span style="color:green;">(ครบ)</span>`;
 
-            document.getElementById(`totSubPct_${itemId}`).textContent = rTot;
-            document.getElementById(`totSubAmt_${itemId}`).textContent = totAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
-            document.getElementById(`remAmt_${itemId}`).textContent = (baseAmt - totAmt).toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            document.getElementById(`totSubPct_${roundId}`).textContent = rTot;
+            document.getElementById(`totSubAmt_${roundId}`).textContent = totAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
+            document.getElementById(`remAmt_${roundId}`).textContent = (baseAmt - totAmt).toLocaleString('th-TH', { maximumFractionDigits: 2 });
         }
 
         window.onload = () => {
+            let visitCount = localStorage.getItem('moneyHeist_visitCount') || 0;
+            visitCount++; 
+            localStorage.setItem('moneyHeist_visitCount', visitCount);
+            
+            const counterDisplay = document.getElementById('visitor_counter_display');
+            if(counterDisplay) {
+                counterDisplay.innerText = visitCount.toLocaleString('th-TH');
+            }
+
             const saved = localStorage.getItem('profitShareState');
             if (saved) {
                 try {
                     const state = JSON.parse(saved);
                     globalIdCounter = state.globalIdCounter || 0;
-                    
                     if (state.items.length === 0) throw new Error("No items");
 
-                    state.items.forEach((item, index) => {
-                        restoreItem(item, index === 0);
-                    });
+                    state.items.forEach((item, index) => { restoreItem(item, index === 0); });
                     
                     if(state.activeTabId && document.getElementById(`menu_${state.activeTabId}`)) {
                         switchTab(state.activeTabId);
@@ -1134,6 +1103,5 @@
             }
         };
     </script>
-
 </body>
 </html>
