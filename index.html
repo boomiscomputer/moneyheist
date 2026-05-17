@@ -217,6 +217,7 @@
             return parseFloat(el.value.replace(/,/g, '')) || 0;
         }
 
+        // ================= เก็บข้อมูล / ล้างข้อมูล (Local Storage) =================
         function getCurrentState() {
             let state = { globalIdCounter: globalIdCounter, items: [] };
             
@@ -229,36 +230,20 @@
                 let roundsData = [];
                 itemInst.rounds.forEach(roundId => {
                     const rInst = roundInstances[roundId];
-
-                    const activeSel = document.getElementById(`select_${roundId}`);
-                    if (activeSel) {
-                        const selId = activeSel.value;
-                        if (selId && rInst.groupData[selId]) {
-                            const subsDOM = document.querySelectorAll(`#subItemList_${roundId} .sub-item-box`);
-                            if (subsDOM.length > 0) {
-                                rInst.groupData[selId].subItems = Array.from(subsDOM).map(sub => {
-                                    return {
-                                        id: sub.id,
-                                        name: sub.querySelector('.sub-item-header input').value,
-                                        pct: sub.querySelector('.s-pct').value
-                                    };
-                                });
-                            }
-                        }
-                    }
-
                     const income = document.getElementById(`income_${roundId}`).value;
                     const cost = document.getElementById(`cost_${roundId}`).value;
                     const limit = document.getElementById(`limit_${roundId}`).value;
                     const selectedGroup = document.getElementById(`select_${roundId}`).value;
                     
                     let groups = [];
+                    // ดึงข้อมูลกลุ่มหลักบนหน้าจอซ้ายมือ
                     document.querySelectorAll(`#groupList_${roundId} .group-box`).forEach(gb => {
                         const gId = gb.id;
                         const name = gb.querySelector('.g-name').value;
                         const pct = gb.querySelector('.g-pct').value;
                         const gd = rInst.groupData[gId] || { subItems: [], expandPct: 0 };
                         
+                        // ไม่ดึงหน้าจอขวามืออีกต่อไป! เพราะ memory อัปเดตครบถ้วนและแม่นยำที่สุดผ่าน oninput
                         groups.push({
                             id: gId, name: name, pct: pct, expandPct: gd.expandPct,
                             subItems: JSON.parse(JSON.stringify(gd.subItems)) 
@@ -588,7 +573,6 @@
             roundView.className = `round-view ${isFirst ? 'active' : ''}`;
             roundView.id = `view_${roundId}`;
 
-            // เพิ่ม inputmode="decimal" สำหรับมือถือ
             roundView.innerHTML = `
                 <div class="inner-layout">
                     <div class="inner-main">
