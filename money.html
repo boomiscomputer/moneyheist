@@ -47,7 +47,6 @@
         .view-panel.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Input ชื่องาน */
         .project-name-input { font-size: 22px; font-weight: bold; color: var(--primary-color); border: none; border-bottom: 2px dashed #ccc; background: transparent; width: 100%; margin-bottom: 15px; padding-bottom: 5px; outline: none; font-family: inherit; transition: 0.3s; }
         .project-name-input:focus { border-bottom-color: var(--primary-color); }
         .project-name-input::placeholder { color: #bbdefb; }
@@ -99,7 +98,6 @@
         .leave-btn.active { background-color: #FF9800; }
         .leave-btn.active:hover { background-color: #F57C00; }
         
-        /* สไตล์ปุ่มดาวสำหรับแตกลูกทีม */
         .star-btn { background-color: #fff; color: #FF9800; border: 1px solid #FF9800; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px; font-weight: bold; white-space: nowrap;}
         .star-btn:hover { background-color: #fff3e0; }
         .star-btn.active { background-color: #FF9800; color: white; }
@@ -116,9 +114,8 @@
         .sub-item-row input { width: 45%; }
         .sub-amount-display { font-weight: bold; color: #1976D2; font-size: 13px; text-align: right;}
 
-        /* สไตล์กล่องลูกทีม */
         .team-section { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ccc; background-color: #f4f7f6; border-radius: 6px; padding: 10px; }
-        .team-header { font-size: 12px; font-weight: bold; color: var(--secondary-color); margin-bottom: 8px; display:flex; justify-content:space-between;}
+        .team-header { font-size: 12px; font-weight: bold; color: var(--secondary-color); margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center;}
         .team-member-row { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; }
         .tm-name-input { flex: 2; padding: 4px !important; font-size: 12px !important; border: 1px solid #ccc; border-radius: 4px; }
         .tm-pct-input { flex: 1; padding: 4px !important; font-size: 12px !important; border: 1px solid #ccc; border-radius: 4px; text-align:center; }
@@ -145,7 +142,6 @@
         .btn-clear { background-color: #f44336; }
         .btn-clear:hover { background-color: #da190b; }
 
-        /* ปุ่มแชร์ LINE */
         .btn-line { background-color: #00B900; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
         .btn-line:hover { background-color: #009900; }
 
@@ -256,7 +252,6 @@
             return parseFloat(el.value.replace(/,/g, '')) || 0;
         }
 
-        // ================= เก็บข้อมูล / ล้างข้อมูล =================
         function getCurrentState() {
             let state = { globalIdCounter: globalIdCounter, items: [] };
             
@@ -265,7 +260,6 @@
                 if(!itemInstances[itemId]) return;
                 const itemInst = itemInstances[itemId];
                 
-                // ดึงชื่องานจาก Input
                 const projectNameInput = document.getElementById(`projectName_${itemId}`);
                 const projectName = projectNameInput ? projectNameInput.value : '';
                 const title = projectName || tab.dataset.baseTitle;
@@ -305,6 +299,7 @@
                                         isOptOut: existState.isOptOut || false,
                                         isStarred: existState.isStarred || false,
                                         teamMembers: teamMembers,
+                                        teamCalcMode: existState.teamCalcMode || 'pct', // เก็บ Mode การคำนวณลูกทีม
                                         amt: existState.amt || 0,
                                         effectivePct: existState.effectivePct || 0
                                     };
@@ -412,7 +407,6 @@
             if(tabId === 'summary') renderSummaryPage();
         }
 
-        // ================= แชร์ไปยัง LINE =================
         function shareToLine(itemIndex) {
             const item = window.summaryState[itemIndex];
             const pName = item.projectName ? item.projectName : item.title;
@@ -465,11 +459,33 @@
                             
                             if (sub.isStarred && sub.teamMembers && sub.teamMembers.length > 0) {
                                 let teamTotAmt = 0;
+                                const mode = sub.teamCalcMode || 'pct';
+                                
+                                let totalParts = 0;
+                                if (mode === 'parts') {
+                                    sub.teamMembers.forEach(tm => totalParts += parseFloat(tm.pct) || 0);
+                                }
+
                                 sub.teamMembers.forEach(tm => {
-                                    const tmP = parseFloat(tm.pct) || 0;
-                                    const tmA = p > 0 ? a * (tmP / p) : 0; // แก้ไขให้คำนวณจากเปอร์เซ็นต์โปรเจกต์
+                                    const inputValue = parseFloat(tm.pct) || 0;
+                                    let tmP = 0;
+                                    let tmA = 0;
+                                    let label = '';
+                                    
+                                    if (mode === 'pct') {
+                                        tmP = inputValue;
+                                        tmA = p > 0 ? a * (tmP / p) : 0;
+                                        label = `${tmP}%`;
+                                    } else if (mode === 'parts') {
+                                        if (totalParts > 0) {
+                                            tmP = p * (inputValue / totalParts);
+                                            tmA = a * (inputValue / totalParts);
+                                        }
+                                        label = `${inputValue} ส่วน (${tmP.toFixed(2)}%)`;
+                                    }
+                                    
                                     teamTotAmt += tmA;
-                                    text += `   ↳ ลูกทีม: ${tm.name || 'ไม่ระบุ'} (${tmP}%): ${tmA.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.\n`;
+                                    text += `   ↳ ลูกทีม: ${tm.name || 'ไม่ระบุ'} (${label}): ${tmA.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.\n`;
                                 });
                                 text += `   [คงเหลือสุทธิของคุณ: ${(a - teamTotAmt).toLocaleString('th-TH', {maximumFractionDigits:2})} บ.]\n`;
                             }
@@ -641,14 +657,36 @@
                 if (sub.isStarred && sub.teamMembers && sub.teamMembers.length > 0) {
                     let tmRows = '';
                     let teamTotAmt = 0;
+                    const mode = sub.teamCalcMode || 'pct';
+                    
+                    let totalParts = 0;
+                    if (mode === 'parts') {
+                        sub.teamMembers.forEach(tm => totalParts += parseFloat(tm.pct) || 0);
+                    }
+
                     sub.teamMembers.forEach(tm => {
-                        const tmP = parseFloat(tm.pct) || 0;
-                        const tmA = p > 0 ? a * (tmP / p) : 0; // แก้ไขให้คำนวณจากเปอร์เซ็นต์โปรเจกต์
+                        const inputValue = parseFloat(tm.pct) || 0;
+                        let tmP = 0;
+                        let tmA = 0;
+                        let label = '';
+                        
+                        if (mode === 'pct') {
+                            tmP = inputValue;
+                            tmA = p > 0 ? a * (tmP / p) : 0;
+                            label = `${tmP}%`;
+                        } else if (mode === 'parts') {
+                            if (totalParts > 0) {
+                                tmP = p * (inputValue / totalParts);
+                                tmA = a * (inputValue / totalParts);
+                            }
+                            label = `${inputValue} ส่วน <span style="font-size:10px;color:#888;">(${tmP.toFixed(2)}%)</span>`;
+                        }
+
                         teamTotAmt += tmA;
                         tmRows += `
                             <div style="display:flex; justify-content:space-between; padding: 4px 0 4px 20px; font-size:12px; color:#555;">
                                 <span>↳ ลูกทีม: ${tm.name || 'ไม่ระบุชื่อ'}</span>
-                                <span><b>${tmP}%</b> &nbsp;&nbsp; <span style="color:#1976D2;">${tmA.toLocaleString('th-TH', {maximumFractionDigits:2})} บาท</span></span>
+                                <span><b>${label}</b> &nbsp;&nbsp; <span style="color:#1976D2;">${tmA.toLocaleString('th-TH', {maximumFractionDigits:2})} บาท</span></span>
                             </div>
                         `;
                     });
@@ -693,7 +731,7 @@
             `;
         }
 
-        // ================= ปุ่มดาว / ออก (Toggle) =================
+        // ================= ปุ่มต่างๆ (Toggle / Update) =================
         function toggleGroupOptOut(roundId, groupId) {
             saveToUndoHistory();
             const gState = roundInstances[roundId].groupData[groupId];
@@ -740,11 +778,19 @@
                 if (s.id === subId) {
                     s.isStarred = !s.isStarred;
                     if(s.isStarred && !s.teamMembers) s.teamMembers = [];
+                    if(s.isStarred && !s.teamCalcMode) s.teamCalcMode = 'pct';
                 } else {
                     s.isStarred = false; 
                 }
             });
             renderSidePanel(roundId);
+        }
+
+        function updateTeamMode(roundId, groupId, subId, mode) {
+            saveToUndoHistory();
+            const state = roundInstances[roundId].groupData[groupId].subItems.find(s => s.id === subId);
+            if (state) state.teamCalcMode = mode;
+            renderSidePanel(roundId); // Re-render เพื่อเปลี่ยน placeholder
         }
 
         function addTeamMember(roundId, groupId, subId) {
@@ -1036,7 +1082,8 @@
                         pct: s.pct,
                         isOptOut: s.isOptOut || false,
                         isStarred: s.isStarred || false,
-                        teamMembers: newTeamMembers
+                        teamMembers: newTeamMembers,
+                        teamCalcMode: s.teamCalcMode || 'pct'
                     };
                 });
                 
@@ -1174,8 +1221,8 @@
             state.groupData[groupId] = {
                 amt: 0, pct: 0, expandPct: 0, isOptOut: false,
                 subItems: [ 
-                    { id: `${groupId}_s_${tStr}_1`, name: '', pct: '', isOptOut: false, isStarred: false, teamMembers: [] }, 
-                    { id: `${groupId}_s_${tStr}_2`, name: '', pct: '', isOptOut: false, isStarred: false, teamMembers: [] } 
+                    { id: `${groupId}_s_${tStr}_1`, name: '', pct: '', isOptOut: false, isStarred: false, teamMembers: [], teamCalcMode: 'pct' }, 
+                    { id: `${groupId}_s_${tStr}_2`, name: '', pct: '', isOptOut: false, isStarred: false, teamMembers: [], teamCalcMode: 'pct' } 
                 ]
             };
 
@@ -1339,6 +1386,9 @@
                 const starClass = sub.isStarred ? 'star-btn active' : 'star-btn';
                 const starText = sub.isStarred ? '⭐ กลุ่มเรา' : '☆ เลือกกลุ่มเรา';
                 const safeName = (sub.name || '').replace(/"/g, '&quot;');
+                
+                const teamMode = sub.teamCalcMode || 'pct';
+                const placeholderText = teamMode === 'parts' ? 'จำนวนส่วน' : '%';
 
                 let teamHtml = '';
                 if (sub.isStarred) {
@@ -1347,7 +1397,7 @@
                         rowsHtml += `
                             <div class="team-member-row" data-id="${tm.id}">
                                 <input type="text" class="tm-name-input" placeholder="ชื่อลูกทีม" value="${(tm.name||'').replace(/"/g, '&quot;')}" oninput="updateTeamMember('${roundId}', '${selId}', '${sub.id}', '${tm.id}', 'name', this.value)">
-                                <input type="text" inputmode="decimal" class="tm-pct-input" placeholder="%" value="${tm.pct}" onkeydown="allowOnlyNumbers(event)" oninput="updateTeamMember('${roundId}', '${selId}', '${sub.id}', '${tm.id}', 'pct', this.value); formatPercentInput(this, 'side', '${roundId}');">
+                                <input type="text" inputmode="decimal" class="tm-pct-input" placeholder="${placeholderText}" value="${tm.pct}" onkeydown="allowOnlyNumbers(event)" oninput="updateTeamMember('${roundId}', '${selId}', '${sub.id}', '${tm.id}', 'pct', this.value); formatPercentInput(this, 'side', '${roundId}');">
                                 <span class="tm-amt">0 บาท</span>
                                 <button class="remove-btn" style="padding:4px 6px;" onclick="removeTeamMember('${roundId}', '${selId}', '${sub.id}', '${tm.id}')">ลบ</button>
                             </div>
@@ -1358,6 +1408,10 @@
                         <div class="team-section">
                             <div class="team-header">
                                 <span>👥 ลูกทีม (ตัดจากยอดเงินของกลุ่มนี้)</span>
+                                <select class="team-mode-select" onchange="updateTeamMode('${roundId}', '${selId}', '${sub.id}', this.value)" style="padding:2px 4px; font-size:11px; border-radius:4px; border:1px solid #ccc; background:#fff; color:#555;">
+                                    <option value="pct" ${teamMode !== 'parts' ? 'selected' : ''}>แบบ %</option>
+                                    <option value="parts" ${teamMode === 'parts' ? 'selected' : ''}>แบบกลุ่ม (ส่วน)</option>
+                                </select>
                             </div>
                             ${rowsHtml}
                             <button class="add-tm-btn" onclick="addTeamMember('${roundId}', '${selId}', '${sub.id}')">+ เพิ่มลูกทีม</button>
@@ -1411,7 +1465,7 @@
             state.subItemCount++;
             const subId = `${selId}_s_${Date.now()}_${state.subItemCount}`;
 
-            state.groupData[selId].subItems.push({ id: subId, name: '', pct: '', isOptOut: false, isStarred: false, teamMembers: [] });
+            state.groupData[selId].subItems.push({ id: subId, name: '', pct: '', isOptOut: false, isStarred: false, teamMembers: [], teamCalcMode: 'pct' });
             renderSidePanel(roundId); 
         }
 
@@ -1487,29 +1541,54 @@
                 
                 sub.querySelector('.s-amt').innerHTML = displayHtml;
 
-                // คำนวณลูกทีมโดยยึด % จากก้อนโปรเจกต์
+                // คำนวณลูกทีมโดยยึด % จากก้อนโปรเจกต์ หรือ หารตามสัดส่วน
                 if (subState.isStarred && subState.teamMembers) {
                     let teamTotPct = 0;
                     let teamTotAmt = 0;
+                    const mode = subState.teamCalcMode || 'pct';
+                    
+                    let totalParts = 0;
                     const tmRows = sub.querySelectorAll('.team-member-row');
+                    if (mode === 'parts') {
+                        tmRows.forEach(tmRow => {
+                            totalParts += parseFloat(tmRow.querySelector('.tm-pct-input').value) || 0;
+                        });
+                    }
+
                     tmRows.forEach(tmRow => {
                         const tmId = tmRow.dataset.id;
                         const tmState = subState.teamMembers.find(t => t.id === tmId);
-                        const tmPct = parseFloat(tmRow.querySelector('.tm-pct-input').value) || 0;
-                        teamTotPct += tmPct;
+                        const inputValue = parseFloat(tmRow.querySelector('.tm-pct-input').value) || 0;
                         
-                        // คูณ % จากยอด 1% ของโปรเจกต์ ไม่ใช่ 1% ของเงินก้อนหัวหน้า
-                        const tmAmt = p > 0 ? a * (tmPct / p) : 0; 
+                        let tmPct = 0;
+                        let tmAmt = 0;
+                        
+                        if (mode === 'pct') {
+                            tmPct = inputValue;
+                            tmAmt = p > 0 ? a * (tmPct / p) : 0;
+                        } else if (mode === 'parts') {
+                            if (totalParts > 0) {
+                                tmPct = p * (inputValue / totalParts);
+                                tmAmt = a * (inputValue / totalParts);
+                            }
+                        }
+                        
+                        teamTotPct += tmPct;
                         teamTotAmt += tmAmt;
                         
-                        tmRow.querySelector('.tm-amt').innerHTML = tmAmt.toLocaleString('th-TH', {maximumFractionDigits:2}) + ' บ.';
+                        let displayVal = tmAmt.toLocaleString('th-TH', {maximumFractionDigits:2}) + ' บ.';
+                        if (mode === 'parts' && totalParts > 0) {
+                            displayVal = `<span style="font-size:10px; color:#888;">(${tmPct.toFixed(2)}%)</span> ` + displayVal;
+                        }
+                        
+                        tmRow.querySelector('.tm-amt').innerHTML = displayVal;
                         
                         if (tmState) tmState.pct = tmRow.querySelector('.tm-pct-input').value;
                     });
                     
                     const summaryEl = sub.querySelector('.team-summary-text');
                     if (summaryEl) {
-                        summaryEl.innerHTML = `รวมแบ่งลูกทีม: <b>${teamTotPct}%</b> | คงเหลือของคุณ: <b style="color:var(--primary-color);">${(a - teamTotAmt).toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</b>`;
+                        summaryEl.innerHTML = `รวมแบ่งลูกทีม: <b>${teamTotPct.toFixed(2)}%</b> | คงเหลือของคุณ: <b style="color:var(--primary-color);">${(a - teamTotAmt).toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</b>`;
                     }
                 }
             });
