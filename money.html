@@ -51,13 +51,15 @@
         .project-name-input:focus { border-bottom-color: var(--primary-color); }
         .project-name-input::placeholder { color: #bbdefb; }
 
-        .round-tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; overflow-x: auto;}
-        .round-tab { padding: 6px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; background-color: #e0e0e0; border: 1px solid #ccc; color: #555; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: 0.2s;}
+        .round-tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; overflow-x: auto; align-items: center;}
+        .round-tab { padding: 6px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; background-color: #e0e0e0; border: 1px solid #ccc; color: #555; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: 0.2s; white-space: nowrap;}
         .round-tab.active { background-color: var(--secondary-color); color: white; border-color: var(--secondary-color); }
         .del-round { background: rgba(0,0,0,0.15); color: white; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; justify-content: center; align-items: center; font-size: 10px; cursor: pointer;}
         .del-round:hover { background: rgba(0,0,0,0.4); }
-        .add-round-btn { background: #4CAF50; color: white; border: none; border-radius: 20px; padding: 6px 15px; cursor: pointer; font-weight: bold; font-size: 14px;}
+        .add-round-btn { background: #4CAF50; color: white; border: none; border-radius: 20px; padding: 6px 15px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap;}
         
+        .our-group-total-badge { display: none; margin-left: auto; background: #fff8e1; border: 2px solid #FF9800; color: #F57C00; padding: 6px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; align-items: center; white-space: nowrap; box-shadow: 0 2px 5px rgba(255,152,0,0.15); }
+
         .round-view { display: none; }
         .round-view.active { display: block; animation: fadeIn 0.3s; }
 
@@ -252,6 +254,7 @@
             return parseFloat(el.value.replace(/,/g, '')) || 0;
         }
 
+        // ================= เก็บข้อมูล / ล้างข้อมูล =================
         function getCurrentState() {
             let state = { globalIdCounter: globalIdCounter, items: [] };
             
@@ -299,7 +302,7 @@
                                         isOptOut: existState.isOptOut || false,
                                         isStarred: existState.isStarred || false,
                                         teamMembers: teamMembers,
-                                        teamCalcMode: existState.teamCalcMode || 'pct', // เก็บ Mode การคำนวณลูกทีม
+                                        teamCalcMode: existState.teamCalcMode || 'pct',
                                         amt: existState.amt || 0,
                                         effectivePct: existState.effectivePct || 0
                                     };
@@ -407,6 +410,104 @@
             if(tabId === 'summary') renderSummaryPage();
         }
 
+        // ================= คำนวณสรุปยอดกลุ่มเรา ทุกรอบ =================
+        function calculateOurGroupTotal(itemId) {
+            const itemState = itemInstances[itemId];
+            if (!itemState) return;
+
+            let totalOurGroup = 0;
+            let hasStarred = false;
+
+            itemState.rounds.forEach(roundId => {
+                const rState = roundInstances[roundId];
+                if (!rState) return;
+
+                const income = getRawNumber(`income_${roundId}`);
+                const cost = getRawNumber(`cost_${roundId}`);
+                const netProfit = income - cost;
+                const limit = parseFloat(document.getElementById(`limit_${roundId}`).value) || 0;
+                const vpp = limit > 0 ? netProfit / limit : 0;
+
+                let totalInputPct = 0;
+                let activeInputPct = 0;
+                for (const gId in rState.groupData) {
+                    const gState = rState.groupData[gId];
+                    totalInputPct += gState.pct;
+                    if (!gState.isOptOut) activeInputPct += gState.pct;
+                }
+                const groupMultiplier = activeInputPct > 0 ? (totalInputPct / activeInputPct) : 0;
+
+                for (const gId in rState.groupData) {
+                    const gState = rState.groupData[gId];
+                    if (gState.isOptOut) continue;
+
+                    const effectiveGroupPct = gState.pct * groupMultiplier;
+                    const groupAmt = vpp * effectiveGroupPct;
+                    const totalTarget = gState.pct + (gState.expandPct || 0);
+                    const onePercentValue = totalTarget > 0 ? groupAmt / totalTarget : 0;
+
+                    let totalInputSubPct = 0;
+                    let activeInputSubPct = 0;
+                    gState.subItems.forEach(sub => {
+                        const p = parseFloat(sub.pct) || 0;
+                        totalInputSubPct += p;
+                        if (!sub.isOptOut) activeInputSubPct += p;
+                    });
+                    const subMultiplier = activeInputSubPct > 0 ? (totalInputSubPct / activeInputSubPct) : 0;
+
+                    gState.subItems.forEach(sub => {
+                        if (sub.isStarred) {
+                            hasStarred = true;
+                            if (sub.isOptOut) return;
+
+                            const p = parseFloat(sub.pct) || 0;
+                            const effectiveP = p * subMultiplier;
+                            const a = onePercentValue * effectiveP;
+
+                            let finalAmt = a;
+
+                            if (sub.teamMembers && sub.teamMembers.length > 0) {
+                                let teamTotAmt = 0;
+                                const mode = sub.teamCalcMode || 'pct';
+                                
+                                let totalParts = 0;
+                                if (mode === 'parts') {
+                                    sub.teamMembers.forEach(tm => totalParts += parseFloat(tm.pct) || 0);
+                                }
+
+                                sub.teamMembers.forEach(tm => {
+                                    const inputValue = parseFloat(tm.pct) || 0;
+                                    let tmAmt = 0;
+                                    if (mode === 'pct') {
+                                        tmAmt = p > 0 ? a * (inputValue / p) : 0;
+                                    } else if (mode === 'parts') {
+                                        if (totalParts > 0) {
+                                            tmAmt = a * (inputValue / totalParts);
+                                        }
+                                    }
+                                    teamTotAmt += tmAmt;
+                                });
+                                finalAmt -= teamTotAmt;
+                            }
+
+                            totalOurGroup += finalAmt;
+                        }
+                    });
+                }
+            });
+
+            const displayEl = document.getElementById(`our_group_total_${itemId}`);
+            if (displayEl) {
+                if (hasStarred) {
+                    displayEl.innerHTML = `⭐ รวมกลุ่มเรา: <span style="color:#d32f2f; margin-left: 5px;">${totalOurGroup.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</span>`;
+                    displayEl.style.display = 'inline-flex';
+                } else {
+                    displayEl.style.display = 'none';
+                }
+            }
+        }
+
+        // ================= แชร์ไปยัง LINE =================
         function shareToLine(itemIndex) {
             const item = window.summaryState[itemIndex];
             const pName = item.projectName ? item.projectName : item.title;
@@ -731,7 +832,7 @@
             `;
         }
 
-        // ================= ปุ่มต่างๆ (Toggle / Update) =================
+        // ================= ปุ่มต่างๆ =================
         function toggleGroupOptOut(roundId, groupId) {
             saveToUndoHistory();
             const gState = roundInstances[roundId].groupData[groupId];
@@ -790,7 +891,7 @@
             saveToUndoHistory();
             const state = roundInstances[roundId].groupData[groupId].subItems.find(s => s.id === subId);
             if (state) state.teamCalcMode = mode;
-            renderSidePanel(roundId); // Re-render เพื่อเปลี่ยน placeholder
+            renderSidePanel(roundId);
         }
 
         function addTeamMember(roundId, groupId, subId) {
@@ -849,6 +950,9 @@
                     
                     <div class="round-tabs" id="round_tabs_${itemId}">
                         <button class="add-round-btn" onclick="addRound('${itemId}')">+ เพิ่มรอบ</button>
+                        <div class="our-group-total-badge" id="our_group_total_${itemId}">
+                            ⭐ รวมกลุ่มเรา: <span style="color:#d32f2f; margin-left: 5px;">0 บ.</span>
+                        </div>
                     </div>
                     <div id="round_views_${itemId}"></div>
                 </div>
@@ -1045,6 +1149,7 @@
                 itemInstances[itemId].rounds = itemInstances[itemId].rounds.filter(id => id !== roundId);
                 updateRoundTabs(itemId);
                 switchRound(itemId, itemInstances[itemId].rounds[0]);
+                calculateOurGroupTotal(itemId);
             }
         }
 
@@ -1140,6 +1245,9 @@
                     <input type="text" class="project-name-input" id="projectName_${itemId}" value="${itemData.projectName || ''}" placeholder="กรอกชื่องาน (เช่น งานตึก A)..." oninput="updateItemTitle('${itemId}')">
                     <div class="round-tabs" id="round_tabs_${itemId}">
                         <button class="add-round-btn" onclick="addRound('${itemId}')">+ เพิ่มรอบ</button>
+                        <div class="our-group-total-badge" id="our_group_total_${itemId}">
+                            ⭐ รวมกลุ่มเรา: <span style="color:#d32f2f; margin-left: 5px;">0 บ.</span>
+                        </div>
                     </div>
                     <div id="round_views_${itemId}"></div>
                 </div>
@@ -1153,6 +1261,7 @@
             });
             
             updateItemTitle(itemId); 
+            calculateOurGroupTotal(itemId);
         }
 
         function restoreRound(roundId, roundData) {
@@ -1541,7 +1650,6 @@
                 
                 sub.querySelector('.s-amt').innerHTML = displayHtml;
 
-                // คำนวณลูกทีมโดยยึด % จากก้อนโปรเจกต์ หรือ หารตามสัดส่วน
                 if (subState.isStarred && subState.teamMembers) {
                     let teamTotPct = 0;
                     let teamTotAmt = 0;
@@ -1604,6 +1712,9 @@
             document.getElementById(`totSubPct_${roundId}`).textContent = rTot;
             document.getElementById(`totSubAmt_${roundId}`).textContent = totAmt.toLocaleString('th-TH', { maximumFractionDigits: 2 });
             document.getElementById(`remAmt_${roundId}`).textContent = (baseAmt - totAmt).toLocaleString('th-TH', { maximumFractionDigits: 2 });
+
+            const itemId = roundId.split('_r_')[0];
+            calculateOurGroupTotal(itemId);
         }
 
         window.onload = () => {
