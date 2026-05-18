@@ -58,7 +58,11 @@
         .del-round:hover { background: rgba(0,0,0,0.4); }
         .add-round-btn { background: #4CAF50; color: white; border: none; border-radius: 20px; padding: 6px 15px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap;}
         
-        .our-group-total-badge { display: none; margin-left: auto; background: #fff8e1; border: 2px solid #FF9800; color: #F57C00; padding: 6px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; align-items: center; white-space: nowrap; box-shadow: 0 2px 5px rgba(255,152,0,0.15); }
+        /* กล่องสรุปกลุ่มเรา */
+        .our-group-summary-box { display: none; background: #fff8e1; border: 2px solid #FF9800; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(255,152,0,0.1); animation: fadeIn 0.3s; }
+        .our-group-summary-title { color: #F57C00; font-size: 16px; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #FFCC80; padding-bottom: 5px; }
+        .our-group-summary-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
+        .our-group-summary-row.total { font-weight: bold; font-size: 15px; color: #d32f2f; border-top: 1px solid #FFCC80; padding-top: 8px; margin-top: 8px; }
 
         .round-view { display: none; }
         .round-view.active { display: block; animation: fadeIn 0.3s; }
@@ -254,7 +258,6 @@
             return parseFloat(el.value.replace(/,/g, '')) || 0;
         }
 
-        // ================= เก็บข้อมูล / ล้างข้อมูล =================
         function getCurrentState() {
             let state = { globalIdCounter: globalIdCounter, items: [] };
             
@@ -415,8 +418,11 @@
             const itemState = itemInstances[itemId];
             if (!itemState) return;
 
-            let totalOurGroup = 0;
+            let totalGroupAmt = 0;
+            let leaderNetAmt = 0;
+            let teamMembersAccum = {}; 
             let hasStarred = false;
+            let starredName = "";
 
             itemState.rounds.forEach(roundId => {
                 const rState = roundInstances[roundId];
@@ -458,18 +464,18 @@
                     gState.subItems.forEach(sub => {
                         if (sub.isStarred) {
                             hasStarred = true;
+                            starredName = sub.name || 'ไม่ระบุชื่อ';
                             if (sub.isOptOut) return;
 
                             const p = parseFloat(sub.pct) || 0;
                             const effectiveP = p * subMultiplier;
                             const a = onePercentValue * effectiveP;
 
-                            let finalAmt = a;
+                            totalGroupAmt += a;
+                            let currentRoundTeamAmt = 0;
 
                             if (sub.teamMembers && sub.teamMembers.length > 0) {
-                                let teamTotAmt = 0;
                                 const mode = sub.teamCalcMode || 'pct';
-                                
                                 let totalParts = 0;
                                 if (mode === 'parts') {
                                     sub.teamMembers.forEach(tm => totalParts += parseFloat(tm.pct) || 0);
@@ -485,24 +491,36 @@
                                             tmAmt = a * (inputValue / totalParts);
                                         }
                                     }
-                                    teamTotAmt += tmAmt;
+                                    currentRoundTeamAmt += tmAmt;
+                                    
+                                    const tmName = tm.name || 'ไม่ระบุชื่อ';
+                                    if (!teamMembersAccum[tmName]) teamMembersAccum[tmName] = 0;
+                                    teamMembersAccum[tmName] += tmAmt;
                                 });
-                                finalAmt -= teamTotAmt;
                             }
-
-                            totalOurGroup += finalAmt;
+                            leaderNetAmt += (a - currentRoundTeamAmt);
                         }
                     });
                 }
             });
 
-            const displayEl = document.getElementById(`our_group_total_${itemId}`);
-            if (displayEl) {
+            const summaryBox = document.getElementById(`our_group_summary_${itemId}`);
+            if (summaryBox) {
                 if (hasStarred) {
-                    displayEl.innerHTML = `⭐ รวมกลุ่มเรา: <span style="color:#d32f2f; margin-left: 5px;">${totalOurGroup.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</span>`;
-                    displayEl.style.display = 'inline-flex';
+                    let html = `<div class="our-group-summary-title">⭐ สรุปยอดรวมกลุ่มเรา (สะสมทุกรอบ): ${starredName}</div>`;
+                    html += `<div class="our-group-summary-row"><span>ยอดรวมทั้งกลุ่ม:</span> <b style="color:var(--primary-color);">${totalGroupAmt.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</b></div>`;
+                    
+                    if (Object.keys(teamMembersAccum).length > 0) {
+                        for (const tmName in teamMembersAccum) {
+                            html += `<div class="our-group-summary-row" style="color:#555;"><span>- ลูกทีม: ${tmName}</span> <span>${teamMembersAccum[tmName].toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</span></div>`;
+                        }
+                        html += `<div class="our-group-summary-row total"><span>คงเหลือสุทธิของคุณ (หัวหน้า):</span> <span>${leaderNetAmt.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</span></div>`;
+                    }
+                    
+                    summaryBox.innerHTML = html;
+                    summaryBox.style.display = 'block';
                 } else {
-                    displayEl.style.display = 'none';
+                    summaryBox.style.display = 'none';
                 }
             }
         }
@@ -950,10 +968,10 @@
                     
                     <div class="round-tabs" id="round_tabs_${itemId}">
                         <button class="add-round-btn" onclick="addRound('${itemId}')">+ เพิ่มรอบ</button>
-                        <div class="our-group-total-badge" id="our_group_total_${itemId}">
-                            ⭐ รวมกลุ่มเรา: <span style="color:#d32f2f; margin-left: 5px;">0 บ.</span>
-                        </div>
                     </div>
+                    
+                    <div id="our_group_summary_${itemId}" class="our-group-summary-box"></div>
+                    
                     <div id="round_views_${itemId}"></div>
                 </div>
             `;
@@ -1243,12 +1261,13 @@
             const viewHTML = `
                 <div class="view-panel calc-view" id="view_${itemId}">
                     <input type="text" class="project-name-input" id="projectName_${itemId}" value="${itemData.projectName || ''}" placeholder="กรอกชื่องาน (เช่น งานตึก A)..." oninput="updateItemTitle('${itemId}')">
+                    
                     <div class="round-tabs" id="round_tabs_${itemId}">
                         <button class="add-round-btn" onclick="addRound('${itemId}')">+ เพิ่มรอบ</button>
-                        <div class="our-group-total-badge" id="our_group_total_${itemId}">
-                            ⭐ รวมกลุ่มเรา: <span style="color:#d32f2f; margin-left: 5px;">0 บ.</span>
-                        </div>
                     </div>
+
+                    <div id="our_group_summary_${itemId}" class="our-group-summary-box"></div>
+
                     <div id="round_views_${itemId}"></div>
                 </div>
             `;
