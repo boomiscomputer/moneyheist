@@ -265,6 +265,7 @@
                 if(!itemInstances[itemId]) return;
                 const itemInst = itemInstances[itemId];
                 
+                // ดึงชื่องานจาก Input
                 const projectNameInput = document.getElementById(`projectName_${itemId}`);
                 const projectName = projectNameInput ? projectNameInput.value : '';
                 const title = projectName || tab.dataset.baseTitle;
@@ -462,12 +463,11 @@
                             const starStr = sub.isStarred ? ' ⭐' : '';
                             text += `- ${safeName}${starStr} (${p}%): ${a.toLocaleString('th-TH', { maximumFractionDigits: 2 })} บ.\n`;
                             
-                            // ถ้ามีลูกทีม โชว์ด้วย
                             if (sub.isStarred && sub.teamMembers && sub.teamMembers.length > 0) {
                                 let teamTotAmt = 0;
                                 sub.teamMembers.forEach(tm => {
                                     const tmP = parseFloat(tm.pct) || 0;
-                                    const tmA = a * (tmP / 100);
+                                    const tmA = p > 0 ? a * (tmP / p) : 0; // แก้ไขให้คำนวณจากเปอร์เซ็นต์โปรเจกต์
                                     teamTotAmt += tmA;
                                     text += `   ↳ ลูกทีม: ${tm.name || 'ไม่ระบุ'} (${tmP}%): ${tmA.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.\n`;
                                 });
@@ -638,13 +638,12 @@
                     </div>
                 `;
 
-                // โชว์ลูกทีมในหน้าสรุปถ้ามี
                 if (sub.isStarred && sub.teamMembers && sub.teamMembers.length > 0) {
                     let tmRows = '';
                     let teamTotAmt = 0;
                     sub.teamMembers.forEach(tm => {
                         const tmP = parseFloat(tm.pct) || 0;
-                        const tmA = a * (tmP / 100);
+                        const tmA = p > 0 ? a * (tmP / p) : 0; // แก้ไขให้คำนวณจากเปอร์เซ็นต์โปรเจกต์
                         teamTotAmt += tmA;
                         tmRows += `
                             <div style="display:flex; justify-content:space-between; padding: 4px 0 4px 20px; font-size:12px; color:#555;">
@@ -1341,7 +1340,6 @@
                 const starText = sub.isStarred ? '⭐ กลุ่มเรา' : '☆ เลือกกลุ่มเรา';
                 const safeName = (sub.name || '').replace(/"/g, '&quot;');
 
-                // ส่วนของลูกทีม
                 let teamHtml = '';
                 if (sub.isStarred) {
                     let rowsHtml = '';
@@ -1489,7 +1487,7 @@
                 
                 sub.querySelector('.s-amt').innerHTML = displayHtml;
 
-                // คำนวณลูกทีมถ้ามี
+                // คำนวณลูกทีมโดยยึด % จากก้อนโปรเจกต์
                 if (subState.isStarred && subState.teamMembers) {
                     let teamTotPct = 0;
                     let teamTotAmt = 0;
@@ -1500,7 +1498,8 @@
                         const tmPct = parseFloat(tmRow.querySelector('.tm-pct-input').value) || 0;
                         teamTotPct += tmPct;
                         
-                        const tmAmt = a * (tmPct / 100);
+                        // คูณ % จากยอด 1% ของโปรเจกต์ ไม่ใช่ 1% ของเงินก้อนหัวหน้า
+                        const tmAmt = p > 0 ? a * (tmPct / p) : 0; 
                         teamTotAmt += tmAmt;
                         
                         tmRow.querySelector('.tm-amt').innerHTML = tmAmt.toLocaleString('th-TH', {maximumFractionDigits:2}) + ' บ.';
