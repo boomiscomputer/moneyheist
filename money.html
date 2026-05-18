@@ -58,7 +58,7 @@
         .del-round:hover { background: rgba(0,0,0,0.4); }
         .add-round-btn { background: #4CAF50; color: white; border: none; border-radius: 20px; padding: 6px 15px; cursor: pointer; font-weight: bold; font-size: 14px; white-space: nowrap;}
         
-        /* กล่องสรุปกลุ่มเรา */
+        .our-group-total-badge { display: none; margin-left: auto; background: #fff8e1; border: 2px solid #FF9800; color: #F57C00; padding: 6px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; align-items: center; white-space: nowrap; box-shadow: 0 2px 5px rgba(255,152,0,0.15); }
         .our-group-summary-box { display: none; background: #fff8e1; border: 2px solid #FF9800; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(255,152,0,0.1); animation: fadeIn 0.3s; }
         .our-group-summary-title { color: #F57C00; font-size: 16px; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #FFCC80; padding-bottom: 5px; }
         .our-group-summary-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
@@ -258,6 +258,7 @@
             return parseFloat(el.value.replace(/,/g, '')) || 0;
         }
 
+        // ================= เก็บข้อมูล / ล้างข้อมูล =================
         function getCurrentState() {
             let state = { globalIdCounter: globalIdCounter, items: [] };
             
@@ -413,61 +414,56 @@
             if(tabId === 'summary') renderSummaryPage();
         }
 
-        // ================= คำนวณสรุปยอดกลุ่มเรา ทุกรอบ =================
-        function calculateOurGroupTotal(itemId) {
-            const itemState = itemInstances[itemId];
-            if (!itemState) return;
-
+        // Helper ดึงข้อมูลสรุปกลุ่มเรา
+        function getOurGroupSummaryData(item) {
             let totalGroupAmt = 0;
             let leaderNetAmt = 0;
-            let teamMembersAccum = {}; 
+            let teamMembersAccum = {};
             let hasStarred = false;
             let starredName = "";
 
-            itemState.rounds.forEach(roundId => {
-                const rState = roundInstances[roundId];
-                if (!rState) return;
-
-                const income = getRawNumber(`income_${roundId}`);
-                const cost = getRawNumber(`cost_${roundId}`);
-                const netProfit = income - cost;
-                const limit = parseFloat(document.getElementById(`limit_${roundId}`).value) || 0;
-                const vpp = limit > 0 ? netProfit / limit : 0;
+            item.rounds.forEach(round => {
+                const incomeNum = parseFloat(String(round.income).replace(/,/g, '')) || 0;
+                const costNum = parseFloat(String(round.cost).replace(/,/g, '')) || 0;
+                const netProfit = incomeNum - costNum;
+                const limitNum = parseFloat(String(round.limit).replace(/,/g, '')) || 0;
+                const vpp = limitNum > 0 ? netProfit / limitNum : 0;
 
                 let totalInputPct = 0;
                 let activeInputPct = 0;
-                for (const gId in rState.groupData) {
-                    const gState = rState.groupData[gId];
-                    totalInputPct += gState.pct;
-                    if (!gState.isOptOut) activeInputPct += gState.pct;
-                }
+                round.groups.forEach(g => {
+                    const pct = parseFloat(String(g.pct).replace(/,/g, '')) || 0;
+                    totalInputPct += pct;
+                    if (!g.isOptOut) activeInputPct += pct;
+                });
                 const groupMultiplier = activeInputPct > 0 ? (totalInputPct / activeInputPct) : 0;
 
-                for (const gId in rState.groupData) {
-                    const gState = rState.groupData[gId];
-                    if (gState.isOptOut) continue;
+                round.groups.forEach(g => {
+                    if (g.isOptOut) return;
 
-                    const effectiveGroupPct = gState.pct * groupMultiplier;
+                    const gPct = parseFloat(String(g.pct).replace(/,/g, '')) || 0;
+                    const effectiveGroupPct = gPct * groupMultiplier;
                     const groupAmt = vpp * effectiveGroupPct;
-                    const totalTarget = gState.pct + (gState.expandPct || 0);
+                    const gExpand = parseFloat(String(g.expandPct).replace(/,/g, '')) || 0;
+                    const totalTarget = gPct + gExpand;
                     const onePercentValue = totalTarget > 0 ? groupAmt / totalTarget : 0;
 
                     let totalInputSubPct = 0;
                     let activeInputSubPct = 0;
-                    gState.subItems.forEach(sub => {
-                        const p = parseFloat(sub.pct) || 0;
+                    (g.subItems || []).forEach(sub => {
+                        const p = parseFloat(String(sub.pct).replace(/,/g, '')) || 0;
                         totalInputSubPct += p;
                         if (!sub.isOptOut) activeInputSubPct += p;
                     });
                     const subMultiplier = activeInputSubPct > 0 ? (totalInputSubPct / activeInputSubPct) : 0;
 
-                    gState.subItems.forEach(sub => {
+                    (g.subItems || []).forEach(sub => {
                         if (sub.isStarred) {
                             hasStarred = true;
                             starredName = sub.name || 'ไม่ระบุชื่อ';
                             if (sub.isOptOut) return;
 
-                            const p = parseFloat(sub.pct) || 0;
+                            const p = parseFloat(String(sub.pct).replace(/,/g, '')) || 0;
                             const effectiveP = p * subMultiplier;
                             const a = onePercentValue * effectiveP;
 
@@ -478,11 +474,11 @@
                                 const mode = sub.teamCalcMode || 'pct';
                                 let totalParts = 0;
                                 if (mode === 'parts') {
-                                    sub.teamMembers.forEach(tm => totalParts += parseFloat(tm.pct) || 0);
+                                    sub.teamMembers.forEach(tm => totalParts += parseFloat(String(tm.pct).replace(/,/g, '')) || 0);
                                 }
 
                                 sub.teamMembers.forEach(tm => {
-                                    const inputValue = parseFloat(tm.pct) || 0;
+                                    const inputValue = parseFloat(String(tm.pct).replace(/,/g, '')) || 0;
                                     let tmAmt = 0;
                                     if (mode === 'pct') {
                                         tmAmt = p > 0 ? a * (inputValue / p) : 0;
@@ -501,20 +497,44 @@
                             leaderNetAmt += (a - currentRoundTeamAmt);
                         }
                     });
-                }
+                });
             });
+
+            return { hasStarred, starredName, totalGroupAmt, leaderNetAmt, teamMembersAccum };
+        }
+
+        // ================= คำนวณสรุปยอดกลุ่มเรา ทุกรอบ =================
+        function calculateOurGroupTotal(itemId) {
+            const itemState = itemInstances[itemId];
+            if (!itemState) return;
+
+            // Using the current active DOM to update memory before calculating summary
+            const stateForSummary = getCurrentState().items.find(i => i.id === itemId);
+            if(!stateForSummary) return;
+
+            const ourGroupData = getOurGroupSummaryData(stateForSummary);
+            
+            const badgeEl = document.getElementById(`our_group_total_${itemId}`);
+            if (badgeEl) {
+                if (ourGroupData.hasStarred) {
+                    badgeEl.innerHTML = `⭐ รวมกลุ่มเรา: <span style="color:#d32f2f; margin-left: 5px;">${ourGroupData.totalGroupAmt.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</span>`;
+                    badgeEl.style.display = 'inline-flex';
+                } else {
+                    badgeEl.style.display = 'none';
+                }
+            }
 
             const summaryBox = document.getElementById(`our_group_summary_${itemId}`);
             if (summaryBox) {
-                if (hasStarred) {
-                    let html = `<div class="our-group-summary-title">⭐ สรุปยอดรวมกลุ่มเรา (สะสมทุกรอบ): ${starredName}</div>`;
-                    html += `<div class="our-group-summary-row"><span>ยอดรวมทั้งกลุ่ม:</span> <b style="color:var(--primary-color);">${totalGroupAmt.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</b></div>`;
+                if (ourGroupData.hasStarred) {
+                    let html = `<div class="our-group-summary-title">⭐ สรุปยอดรวมกลุ่มเรา (สะสมทุกรอบ): ${ourGroupData.starredName}</div>`;
+                    html += `<div class="our-group-summary-row"><span>ยอดรวมทั้งกลุ่ม:</span> <b style="color:var(--primary-color);">${ourGroupData.totalGroupAmt.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</b></div>`;
                     
-                    if (Object.keys(teamMembersAccum).length > 0) {
-                        for (const tmName in teamMembersAccum) {
-                            html += `<div class="our-group-summary-row" style="color:#555;"><span>- ลูกทีม: ${tmName}</span> <span>${teamMembersAccum[tmName].toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</span></div>`;
+                    if (Object.keys(ourGroupData.teamMembersAccum).length > 0) {
+                        for (const tmName in ourGroupData.teamMembersAccum) {
+                            html += `<div class="our-group-summary-row" style="color:#555;"><span>- ลูกทีม: ${tmName}</span> <span>${ourGroupData.teamMembersAccum[tmName].toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</span></div>`;
                         }
-                        html += `<div class="our-group-summary-row total"><span>คงเหลือสุทธิของคุณ (หัวหน้า):</span> <span>${leaderNetAmt.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</span></div>`;
+                        html += `<div class="our-group-summary-row total"><span>คงเหลือสุทธิของคุณ (หัวหน้า):</span> <span>${ourGroupData.leaderNetAmt.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</span></div>`;
                     }
                     
                     summaryBox.innerHTML = html;
@@ -531,6 +551,21 @@
             const pName = item.projectName ? item.projectName : item.title;
             let text = `📊 สรุปงาน: ${pName}\n\n`;
             
+            const ourGroupData = getOurGroupSummaryData(item);
+            if (ourGroupData.hasStarred) {
+                text += `⭐ สรุปยอดรวมกลุ่มเรา (สะสมทุกรอบ)\n`;
+                text += `หัวหน้ากลุ่ม: ${ourGroupData.starredName}\n`;
+                text += `ยอดรวมทั้งกลุ่ม: ${ourGroupData.totalGroupAmt.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.\n`;
+                
+                if(Object.keys(ourGroupData.teamMembersAccum).length > 0) {
+                    for (const tmName in ourGroupData.teamMembersAccum) {
+                        text += ` - ลูกทีม ${tmName}: ${ourGroupData.teamMembersAccum[tmName].toLocaleString('th-TH', {maximumFractionDigits:2})} บ.\n`;
+                    }
+                    text += `>> คงเหลือสุทธิของคุณ: ${ourGroupData.leaderNetAmt.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.\n`;
+                }
+                text += `======================\n\n`;
+            }
+
             item.rounds.forEach((round, rIndex) => {
                 const incomeNum = parseFloat(round.income.replace(/,/g, '')) || 0;
                 const costNum = parseFloat(round.cost.replace(/,/g, '')) || 0;
@@ -600,7 +635,7 @@
                                             tmP = p * (inputValue / totalParts);
                                             tmA = a * (inputValue / totalParts);
                                         }
-                                        label = `${inputValue} ส่วน (${tmP.toFixed(2)}%)`;
+                                        label = `${inputValue} ส่วน`;
                                     }
                                     
                                     teamTotAmt += tmA;
@@ -651,6 +686,24 @@
                             </button>
                         </div>
                 `;
+
+                // แทรกกล่องสรุปกลุ่มเรา ตรงนี้ในหน้า Summary
+                const ourGroupData = getOurGroupSummaryData(item);
+                if (ourGroupData.hasStarred) {
+                    let teamHtml = '';
+                    for (const tmName in ourGroupData.teamMembersAccum) {
+                        teamHtml += `<div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; color:#555;"><span>- ลูกทีม: ${tmName}</span> <span>${ourGroupData.teamMembersAccum[tmName].toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</span></div>`;
+                    }
+
+                    html += `
+                    <div style="background: #fff8e1; border: 2px solid #FF9800; border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(255,152,0,0.1);">
+                        <div style="color: #F57C00; font-size: 16px; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #FFCC80; padding-bottom: 5px;">⭐ สรุปยอดรวมกลุ่มเรา (สะสมทุกรอบ): ${ourGroupData.starredName}</div>
+                        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px;"><span>ยอดรวมทั้งกลุ่ม:</span> <b style="color:var(--primary-color);">${ourGroupData.totalGroupAmt.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</b></div>
+                        ${teamHtml}
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; color: #d32f2f; border-top: 1px solid #FFCC80; padding-top: 8px; margin-top: 8px;"><span>คงเหลือสุทธิของคุณ (หัวหน้า):</span> <span>${ourGroupData.leaderNetAmt.toLocaleString('th-TH', {maximumFractionDigits:2})} บ.</span></div>
+                    </div>
+                    `;
+                }
                 
                 item.rounds.forEach((round, rIndex) => {
                     const incomeNum = parseFloat(round.income.replace(/,/g, '')) || 0;
@@ -968,6 +1021,9 @@
                     
                     <div class="round-tabs" id="round_tabs_${itemId}">
                         <button class="add-round-btn" onclick="addRound('${itemId}')">+ เพิ่มรอบ</button>
+                        <div class="our-group-total-badge" id="our_group_total_${itemId}">
+                            ⭐ รวมกลุ่มเรา: <span style="color:#d32f2f; margin-left: 5px;">0 บ.</span>
+                        </div>
                     </div>
                     
                     <div id="our_group_summary_${itemId}" class="our-group-summary-box"></div>
@@ -1264,6 +1320,9 @@
                     
                     <div class="round-tabs" id="round_tabs_${itemId}">
                         <button class="add-round-btn" onclick="addRound('${itemId}')">+ เพิ่มรอบ</button>
+                        <div class="our-group-total-badge" id="our_group_total_${itemId}">
+                            ⭐ รวมกลุ่มเรา: <span style="color:#d32f2f; margin-left: 5px;">0 บ.</span>
+                        </div>
                     </div>
 
                     <div id="our_group_summary_${itemId}" class="our-group-summary-box"></div>
