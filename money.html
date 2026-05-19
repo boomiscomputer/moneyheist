@@ -508,7 +508,6 @@
             const itemState = itemInstances[itemId];
             if (!itemState) return;
 
-            // Using the current active DOM to update memory before calculating summary
             const stateForSummary = getCurrentState().items.find(i => i.id === itemId);
             if(!stateForSummary) return;
 
@@ -687,7 +686,6 @@
                         </div>
                 `;
 
-                // แทรกกล่องสรุปกลุ่มเรา ตรงนี้ในหน้า Summary
                 const ourGroupData = getOurGroupSummaryData(item);
                 if (ourGroupData.hasStarred) {
                     let teamHtml = '';
@@ -993,7 +991,7 @@
             }
         }
 
-        // ================= จัดการรายการ & รอบ (Rounds) =================
+        // ================= สร้างรายการใหม่ =================
         function updateItemTitle(itemId) {
             const val = document.getElementById(`projectName_${itemId}`).value;
             const tab = document.getElementById(`menu_${itemId}`);
@@ -1034,7 +1032,64 @@
             document.getElementById('main-content').insertAdjacentHTML('beforeend', viewHTML);
 
             updateItemSequence();
-            addRound(itemId, true); 
+
+            const currentState = getCurrentState();
+            let sourceItem = null;
+            if (!isFixed && currentState && currentState.items.length > 0) {
+                const activeTabId = currentState.activeTabId;
+                if (activeTabId && activeTabId !== 'summary') {
+                    sourceItem = currentState.items.find(i => i.id === activeTabId);
+                }
+                if (!sourceItem) {
+                    sourceItem = currentState.items[currentState.items.length - 1];
+                }
+            }
+
+            if (sourceItem) {
+                saveToUndoHistory(); 
+                
+                sourceItem.rounds.forEach((rData, index) => {
+                    let clonedRound = JSON.parse(JSON.stringify(rData));
+                    
+                    // ล้างยอดเงินให้ว่างเปล่า
+                    clonedRound.income = '';
+                    clonedRound.cost = '';
+                    
+                    itemInstances[itemId].roundCounter++;
+                    const newRoundId = `${itemId}_r_${Date.now()}_${itemInstances[itemId].roundCounter}`;
+                    clonedRound.id = newRoundId;
+
+                    // สุ่ม ID ใหม่เพื่อไม่ให้ทับกับของเดิม
+                    clonedRound.groups.forEach((g, gIdx) => {
+                        const oldGId = g.id;
+                        g.id = `${newRoundId}_g_${gIdx + 1}`;
+                        if(clonedRound.selectedGroup === oldGId) clonedRound.selectedGroup = g.id;
+
+                        const timeStr = Date.now() + Math.floor(Math.random()*10000);
+                        g.subItems.forEach((sub, sIdx) => {
+                            sub.id = `${g.id}_s_${timeStr}_${sIdx}`;
+                            (sub.teamMembers || []).forEach((tm, tmIdx) => {
+                                tm.id = `${sub.id}_tm_${tmIdx}`;
+                            });
+                        });
+                    });
+
+                    clonedRound.groupCount = clonedRound.groups.length;
+                    let maxSubItems = 0;
+                    clonedRound.groups.forEach(g => {
+                        if(g.subItems.length > maxSubItems) maxSubItems = g.subItems.length;
+                    });
+                    clonedRound.subItemCount = maxSubItems;
+
+                    addRound(itemId, index === 0, clonedRound);
+                });
+                
+                calculateOurGroupTotal(itemId);
+                switchTab(itemId);
+            } else {
+                addRound(itemId, true); 
+                if(!isFixed) switchTab(itemId);
+            }
         }
 
         function deleteItem(itemId, event) {
